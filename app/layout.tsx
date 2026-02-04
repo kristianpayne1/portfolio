@@ -45,8 +45,8 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body>
-                <Theme>
-                    <main className="flex-auto min-w-0 mt-6 flex flex-col px-2 md:px-0">
+                <Theme accentColor="blue" radius="large" appearance="dark">
+                    <main className="bg-[radial-gradient(900px_420px_at_18%_-10%,rgba(59,130,246,0.35),rgba(15,23,42,0.05)),linear-gradient(180deg,#0f172a_0%,#020617_55%,#000_100%)] flex-auto min-w-0 flex flex-col px-2 bg-black sm:px-10 lg:px-40 h-screen">
                         <Navbar />
                         {children}
                         <Footer />
