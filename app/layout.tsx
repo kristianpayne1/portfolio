@@ -8,11 +8,13 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import Footer from './components/footer'
 import { baseUrl } from './sitemap'
 
+import "@radix-ui/themes/styles.css";
+
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: 'Next.js Portfolio Starter',
-    template: '%s | Next.js Portfolio Starter',
+    default: 'Kristian Payne | Home',
+    template: 'Kristian Payne | %s',
   },
   description: 'This is my portfolio.',
   openGraph: {
@@ -53,13 +55,15 @@ export default function RootLayout({
       )}
     >
       <body className="antialiased max-w-xl mx-4 mt-8 lg:mx-auto">
+        <Theme>
         <main className="flex-auto min-w-0 mt-6 flex flex-col px-2 md:px-0">
           <Navbar />
           {children}
           <Footer />
           <Analytics />
           <SpeedInsights />
-        </main>
+        </main>         
+        </Theme>
       </body>
     </html>
   )
