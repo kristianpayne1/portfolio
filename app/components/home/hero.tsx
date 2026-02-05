@@ -20,11 +20,11 @@ export default function Hero() {
                     user-first.
                 </Text>
                 <Flex gap="4" className="mt-6" wrap="wrap" align="center">
-                    <Button asChild size="3" variant="soft">
-                        <Link href="/projects">View Projects →</Link>
+                    <Button size="3" variant="soft" asChild>
+                        <Link href="/projects" color="gray">View Projects →</Link>
                     </Button>
-                    <Button asChild size="3" variant="ghost">
-                        <Link href="/contact">Contact Me</Link>
+                    <Button size="3" variant="ghost" asChild>
+                        <Link href="/contact" color="gray">Contact Me</Link>
                     </Button>
                 </Flex>
             </Box>
