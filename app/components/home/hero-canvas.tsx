@@ -27,7 +27,7 @@ function SpinningCube() {
 
 export function HeroCanvas() {
     return (
-        <div className="relative h-[320px] w-full md:h-[420px]">
+        <div className="absolute h-[320px] w-full md:h-[420px] left-0 top-0">
             <Canvas camera={{ position: [2.4, 2.2, 3.2], fov: 50 }}>
                 <ambientLight intensity={0.6} />
                 <directionalLight position={[3, 3, 3]} intensity={1.2} />

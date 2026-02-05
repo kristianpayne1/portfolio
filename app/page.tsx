@@ -38,7 +38,7 @@ const technologies = [
 export default function Home() {
     return (
         <section>
-            <Flex direction="column" gap="8" className="relative">
+            <Flex direction="column" gap="8">
                 <Hero />
                 <div className="mt-4">
                     <Flex align="end" justify="between" className="mb-4">
