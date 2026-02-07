@@ -4,10 +4,10 @@ import { HeroCanvas } from "./hero-canvas";
 export default function Hero() {
     return (
         <Flex
-            className="h-[420px] md:h-[600px] flex-col gap-10 lg:flex-row lg:items-center"
+            className="min-h-[calc(100svh-8rem)] flex-col gap-10 lg:flex-row items-center"
             justify="center"
         >
-            <Box className="max-w-xl z-1">
+            <Box className="max-w-xl z-1 -translate-y-50">
                 <Heading
                     as="h1"
                     size="8"
