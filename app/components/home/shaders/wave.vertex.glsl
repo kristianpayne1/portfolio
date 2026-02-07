@@ -8,7 +8,7 @@ void main() {
     float elevation = sin(uv.x * uTime) * 0.1;
     elevation += cos(uv.y * uTime) * 0.1;
 
-    modelPosition.y = elevation;
+    modelPosition.y += elevation;
 
     vec4 viewPosition = viewMatrix * modelPosition;
     vec4 projectedPosition = projectionMatrix * viewPosition;
