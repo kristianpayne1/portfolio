@@ -1,47 +1,57 @@
-import { shaderMaterial } from "@react-three/drei";
-import { useFrame, extend, useThree } from "@react-three/fiber";
-import { useRef } from "react";
-import { AdditiveBlending, Color, DoubleSide } from "three";
-import type { Mesh } from "three";
+"use client";
 
-import vertexShader from "./shaders/wave.vertex.glsl";
-import fragmentShader from "./shaders/wave.fragment.glsl";
+import { useRef, type ComponentProps } from "react";
+import { extend, useFrame, useThree } from "@react-three/fiber";
+import { Color, DoubleSide, Material, OrthographicCamera } from "three";
+import FlowMaterial from "./materials/FlowMaterial";
 
-export const WaveMaterial = shaderMaterial(
-    {
-        uColor: new Color("#ffffff"),
-        uTime: 0.0,
-        uAlpha: 0.5,
-    },
-    vertexShader,
-    fragmentShader
-);
+extend({ FlowMaterial });
 
-extend({ WaveMaterial });
+type WaveProps = ComponentProps<"mesh"> & {
+    resolution?: number;
+    opacity?: number;
+    color?: Color;
+    length?: number;
+};
 
-export default function Wave() {
-    const ref = useRef<Mesh>(null);
-    const matRef = useRef<InstanceType<typeof WaveMaterial>>(null);
-    const { viewport } = useThree();
+type FlowUniformMaterial = Material & {
+    uTime: number;
+    uAlpha: number;
+    uColor: Color;
+};
+
+export default function Wave({
+    resolution = 128,
+    opacity = 0.5,
+    color = new Color("#fff"),
+    length = 1,
+    ...meshProps
+}: WaveProps) {
+    const materialRef = useRef<FlowUniformMaterial | null>(null);
+    const { camera, viewport } = useThree();
+    const viewportWidth =
+        camera instanceof OrthographicCamera
+            ? (camera.right - camera.left) / camera.zoom
+            : viewport.width;
+    const waveLength = Math.max(viewportWidth / 2, 1) * length;
 
     useFrame((_, deltaTime) => {
-        if (!ref.current) return;
-        if (!matRef.current) return;
-        matRef.current.uniforms.uTime.value += deltaTime;
+        const material = materialRef.current;
+        if (!material) return;
+
+        material.uTime += deltaTime;
     });
 
     return (
-        <mesh
-            ref={ref}
-            rotation={[Math.PI / 2, 0, 0]}
-            position={[0, -viewport.height * 0.15, 0]}
-        >
-            <planeGeometry args={[50, 5, 1000, 100]} />
-            <waveMaterial
-                ref={matRef}
+        <mesh {...meshProps} scale={[waveLength, 1, 1]}>
+            <planeGeometry args={[2, 2, resolution, resolution]} />
+            <flowMaterial
+                ref={materialRef}
                 side={DoubleSide}
-                blending={AdditiveBlending}
                 transparent
+                depthTest={false}
+                uAlpha={opacity}
+                uColor={color}
             />
         </mesh>
     );
