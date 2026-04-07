@@ -1,29 +1,6 @@
-import Link from "next/link";
-import { Box, Button, Flex, Heading, Text } from "@radix-ui/themes";
+import { Flex, Heading, Text, Box } from "@radix-ui/themes";
 import Hero from "./components/home/hero";
-
-const highlights = [
-    {
-        title: "Project Name",
-        tone: "from-sky-500/40 via-slate-900/10 to-slate-900/10",
-    },
-    {
-        title: "Project Name",
-        tone: "from-amber-400/40 via-slate-900/10 to-slate-900/10",
-    },
-    {
-        title: "Project Name",
-        tone: "from-cyan-400/40 via-slate-900/10 to-slate-900/10",
-    },
-    {
-        title: "Project Name",
-        tone: "from-violet-500/40 via-slate-900/10 to-slate-900/10",
-    },
-    {
-        title: "Project Name",
-        tone: "from-emerald-400/40 via-slate-900/10 to-slate-900/10",
-    },
-];
+import ProjectReel from "./components/home/project-reel";
 
 const technologies = [
     "HTML / JS",
@@ -49,23 +26,7 @@ export default function Home() {
                             View All Projects →
                         </Text>
                     </Flex>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                        {highlights.map((item, index) => (
-                            <Box
-                                key={`${item.title}-${index}`}
-                                className={`h-36 rounded-2xl border border-white/10 bg-gradient-to-br ${item.tone} p-4 shadow-[0_20px_50px_rgba(2,6,23,0.55)]`}
-                            >
-                                <div className="flex h-full flex-col justify-end">
-                                    <Text
-                                        as="p"
-                                        className="text-sm text-white/80"
-                                    >
-                                        {item.title}
-                                    </Text>
-                                </div>
-                            </Box>
-                        ))}
-                    </div>
+                    <ProjectReel />
                 </div>
 
                 <div className="mt-12">
