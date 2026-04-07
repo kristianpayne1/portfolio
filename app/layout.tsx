@@ -5,7 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Footer from "./components/footer";
 import { baseUrl } from "./sitemap";
-import { Container, Theme } from "@radix-ui/themes";
+import { Container, Theme, Flex } from "@radix-ui/themes";
 
 import "@radix-ui/themes/styles.css";
 
@@ -48,11 +48,13 @@ export default function RootLayout({
                 <Theme accentColor="blue" radius="large" appearance="dark">
                     <main className="bg-black h-screen bg-[radial-gradient(900px_420px_at_18%_-10%,rgba(59,130,246,0.35),rgba(15,23,42,0.05)),linear-gradient(180deg,#0f172a_0%,#020617_55%,#000_100%)]">
                         <Container className="px-10">
-                            <Navbar />
-                            {children}
-                            {/* <Footer /> */}
-                            <Analytics />
-                            <SpeedInsights />
+                            <Flex direction="column" gap="8rem">
+                                <Navbar />
+                                {children}
+                                <Footer />
+                                <Analytics />
+                                <SpeedInsights />
+                            </Flex>
                         </Container>
                     </main>
                 </Theme>

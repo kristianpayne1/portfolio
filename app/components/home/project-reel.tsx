@@ -40,7 +40,7 @@ export default function ProjectReel() {
                 speed={40}
                 gradient
                 gradientColor="#000000"
-                gradientWidth={120}
+                gradientWidth={64}
             >
                 {projects.map((project) => (
                     <Link
@@ -49,7 +49,7 @@ export default function ProjectReel() {
                         className="mx-[15px] block"
                     >
                         <div className="flex flex-col gap-3 ">
-                            <div className="mt-1 relative h-[150px] w-[240px] overflow-hidden rounded-[8px] border border-white/10 transition-all duration-300 hover:ring-2 hover:ring-white/50">
+                            <div className="mt-1 relative h-[150px] w-[240px] overflow-hidden rounded-[8px] border border-black transition-all duration-300 hover:ring-2 hover:ring-white/50">
                                 <Image
                                     src={project.image}
                                     alt={project.title}
