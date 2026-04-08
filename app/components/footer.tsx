@@ -2,7 +2,7 @@ import { FaRss, FaGithub, FaLinkedin } from "react-icons/fa";
 
 export default function Footer() {
     return (
-        <footer className="mt-16 mb-4 flex justify-between">
+        <footer className="mt-16 mb-4 flex justify-between items-end">
             <ul className="font-sm mt-8 flex flex-col space-x-0 space-y-2 text-neutral-400 md:flex-row md:space-x-4 md:space-y-0">
                 <li>
                     <a
