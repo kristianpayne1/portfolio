@@ -2,6 +2,7 @@ import React from "react";
 import { Flex, Heading, Button, Link } from "@radix-ui/themes";
 import Hero from "./components/home/hero";
 import ProjectReel from "./components/home/project-reel";
+import BlogHighlights from "./components/home/blog-highlights";
 import {
     SiHtml5,
     SiReact,
@@ -68,6 +69,19 @@ export default function Home() {
                             </div>
                         ))}
                     </div>
+                </div>
+                <div>
+                    <Flex align="end" justify="between" className="mb-4">
+                        <Heading as="h2" className="text-white/80">
+                            Latest Posts
+                        </Heading>
+                        <Button size="2" variant="ghost" asChild>
+                            <Link href="/blog" color="gray">
+                                View All Posts →
+                            </Link>
+                        </Button>
+                    </Flex>
+                    <BlogHighlights />
                 </div>
             </Flex>
         </section>
