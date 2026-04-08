@@ -1,5 +1,5 @@
 import React from "react";
-import { Flex, Heading, Text } from "@radix-ui/themes";
+import { Flex, Heading, Button, Link } from "@radix-ui/themes";
 import Hero from "./components/home/hero";
 import ProjectReel from "./components/home/project-reel";
 import {
@@ -35,9 +35,11 @@ export default function Home() {
                         <Heading as="h2" className="text-white/80">
                             Highlights
                         </Heading>
-                        <Text as="p" className="text-sm text-white/60">
-                            View All Projects →
-                        </Text>
+                        <Button size="2" variant="ghost" asChild>
+                            <Link href="/projects" color="gray">
+                                View All Projects →
+                            </Link>
+                        </Button>
                     </Flex>
                     <ProjectReel />
                 </div>
