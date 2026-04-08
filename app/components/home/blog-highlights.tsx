@@ -16,8 +16,7 @@ export default function BlogHighlights() {
                 <Link
                     key={post.slug}
                     href={`/blog/${post.slug}`}
-                    aria-label={`Read post: ${post.metadata.title}`}
-                    className="group flex flex-col rounded-lg border border-white/10 bg-white/5 p-6 transition hover:border-white/20 hover:bg-white/10"
+className="group flex flex-col rounded-lg border border-white/10 bg-white/5 p-6 transition hover:border-white/20 hover:bg-white/10"
                 >
                     <p className="text-xs text-white/40">
                         {formatDate(post.metadata.publishedAt)}

@@ -54,6 +54,7 @@ export default function ProjectReel() {
                                     src={project.image}
                                     alt={project.title}
                                     fill
+                                    sizes="240px"
                                     className="object-cover transition-transform duration-300 hover:scale-[1.05]"
                                 />
                             </div>
