@@ -45,7 +45,12 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body>
-                <Theme accentColor="blue" radius="large" appearance="dark">
+                <Theme
+                    accentColor="gray"
+                    radius="large"
+                    appearance="dark"
+                    panelBackground="solid"
+                >
                     <main className="bg-black h-screen bg-[radial-gradient(900px_420px_at_18%_-10%,rgba(59,130,246,0.35),rgba(15,23,42,0.05)),linear-gradient(180deg,#0f172a_0%,#020617_55%,#000_100%)]">
                         <Container className="px-10">
                             <Flex direction="column" gap="8rem">
