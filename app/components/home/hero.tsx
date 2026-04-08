@@ -1,5 +1,5 @@
 import { Flex, Heading, Text, Button, Link, Box } from "@radix-ui/themes";
-import { HeroCanvas } from "./hero-canvas";
+import { HeroCanvasDynamic as HeroCanvas } from "./hero-canvas-dynamic";
 
 export default function Hero() {
     return (
