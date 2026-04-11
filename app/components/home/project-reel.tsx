@@ -34,7 +34,7 @@ const projects = [
 
 export default function ProjectReel() {
     return (
-        <Marquee className="left-1/2 -translate-x-1/2 py-1">
+        <Marquee className="left-1/2 -translate-x-1/2 py-1" showArrows>
             {projects.map((project) => (
                 <Link
                     key={project.href}
