@@ -22,7 +22,7 @@ export function Navbar() {
     }, []);
 
     return (
-        <div className="h-16 tracking-tight sticky top-6 z-50 w-full flex items-center justify-center">
+        <div className="tracking-tight fixed top-6 left-0 right-0 z-50 w-full flex items-center justify-center">
             <div
                 className={`px-4 py-1 rounded-(--radius-1) transition-all duration-300 ${
                     scrolled

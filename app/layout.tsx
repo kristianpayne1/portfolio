@@ -54,8 +54,8 @@ export default function RootLayout({
                     <main className="relative bg-black min-h-dvh">
                         <div className="pointer-events-none absolute inset-x-0 top-0 h-[120dvh] bg-[radial-gradient(900px_420px_at_18%_-10%,rgba(59,130,246,0.35),rgba(15,23,42,0.05)),linear-gradient(180deg,#0f172a_0%,#020617_55%,#000_100%)]" />
                         <Container className="relative px-10">
-                            <Flex direction="column" gap="8rem">
-                                <Navbar />
+                            <Navbar />
+                            <Flex direction="column" gap="8rem" className="pt-48">
                                 {children}
                                 <Footer />
                                 <Analytics />
