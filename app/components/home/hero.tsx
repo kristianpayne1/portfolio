@@ -13,13 +13,13 @@ export default function Hero() {
                     size="8"
                     className="text-white mt-4 text-4xl font-bold leading-tight sm:text-5xl text-center"
                 >
-                    Software Engineer
+                    Kristian Payne
                 </Heading>
                 <Text
                     as="p"
                     className="text-center mt-4 text-base leading-relaxed text-white/70"
                 >
-                    I build modern web experiences with a focus on UI and 3D.
+                    Building for the web with a thing for interactive visuals
                 </Text>
                 <Flex
                     gap="4"
