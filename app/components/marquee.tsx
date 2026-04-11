@@ -23,9 +23,6 @@ export default function Marquee({
     const trackRef = useRef<HTMLDivElement>(null);
     const posRef = useRef(0);
     const pausedRef = useRef(false);
-    const isDraggingRef = useRef(false);
-    const dragStartXRef = useRef(0);
-    const dragStartPosRef = useRef(0);
 
     useEffect(() => {
         const track = trackRef.current;
@@ -41,7 +38,7 @@ export default function Marquee({
 
         function animate() {
             if (track) {
-                if (!pausedRef.current && !isDraggingRef.current) {
+                if (!pausedRef.current) {
                     posRef.current -= speed / 60;
                     wrap();
                 }
@@ -53,54 +50,6 @@ export default function Marquee({
         rafId = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(rafId);
     }, [speed]);
-
-    function handleWheel(e: React.WheelEvent) {
-        e.preventDefault();
-        const track = trackRef.current;
-        if (!track) return;
-        const halfWidth = track.scrollWidth / 2;
-        posRef.current -= e.deltaX + e.deltaY;
-        if (posRef.current <= -halfWidth) posRef.current += halfWidth;
-        if (posRef.current > 0) posRef.current -= halfWidth;
-    }
-
-    function handleMouseDown(e: React.MouseEvent) {
-        isDraggingRef.current = true;
-        dragStartXRef.current = e.clientX;
-        dragStartPosRef.current = posRef.current;
-    }
-
-    function handleMouseMove(e: React.MouseEvent) {
-        if (!isDraggingRef.current) return;
-        const track = trackRef.current;
-        if (!track) return;
-        const halfWidth = track.scrollWidth / 2;
-        const delta = e.clientX - dragStartXRef.current;
-        posRef.current = dragStartPosRef.current + delta;
-        if (posRef.current <= -halfWidth) posRef.current += halfWidth;
-        if (posRef.current > 0) posRef.current -= halfWidth;
-    }
-
-    function handleDragEnd() {
-        isDraggingRef.current = false;
-    }
-
-    function handleTouchStart(e: React.TouchEvent) {
-        isDraggingRef.current = true;
-        dragStartXRef.current = e.touches[0].clientX;
-        dragStartPosRef.current = posRef.current;
-    }
-
-    function handleTouchMove(e: React.TouchEvent) {
-        if (!isDraggingRef.current) return;
-        const track = trackRef.current;
-        if (!track) return;
-        const halfWidth = track.scrollWidth / 2;
-        const delta = e.touches[0].clientX - dragStartXRef.current;
-        posRef.current = dragStartPosRef.current + delta;
-        if (posRef.current <= -halfWidth) posRef.current += halfWidth;
-        if (posRef.current > 0) posRef.current -= halfWidth;
-    }
 
     const animatingRef = useRef(false);
 
@@ -138,21 +87,13 @@ export default function Marquee({
 
     return (
         <div
-            className={`relative overflow-hidden cursor-grab active:cursor-grabbing ${className ?? ""}`}
+            className={`relative overflow-hidden ${className ?? ""}`}
             onMouseEnter={() => {
                 if (pauseOnHover) pausedRef.current = true;
             }}
             onMouseLeave={() => {
                 pausedRef.current = false;
-                handleDragEnd();
             }}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleDragEnd}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleDragEnd}
         >
             <div ref={trackRef} className="flex w-max">
                 {children}
