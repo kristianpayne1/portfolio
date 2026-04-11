@@ -14,6 +14,7 @@ import {
     SiThreedotjs,
 } from "react-icons/si";
 import { IconType } from "react-icons";
+import { HiOutlineChevronDown } from "react-icons/hi";
 
 const technologies: { name: string; icon: IconType; color: string }[] = [
     { name: "HTML / JS", icon: SiHtml5, color: "#e34f26" },
@@ -31,6 +32,12 @@ export default function Home() {
         <section>
             <Flex direction="column" gap="12rem">
                 <Hero />
+                <div className="-mt-80 flex flex-col items-center gap-1 text-white/40 pointer-events-none z-1">
+                    <span className="text-xs tracking-widest uppercase">
+                        Scroll
+                    </span>
+                    <HiOutlineChevronDown className="animate-bounce-subtle w-5 h-5" />
+                </div>
                 <div>
                     <Flex align="end" justify="between" className="mb-4">
                         <Heading as="h2" className="text-white/80">
