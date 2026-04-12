@@ -59,7 +59,7 @@ export const projects: Project[] = [
         image: "/projects/basketball.png",
         href: "https://kristianpayne1.github.io/threejs-basketball/",
         repo: "https://github.com/kristianpayne1/threejs-basketball",
-        tags: ["ThreeJS", "Physics", "WebGL"],
+        tags: ["ThreeJS", "Physics", "GLSL"],
         wip: true
     },
 ];

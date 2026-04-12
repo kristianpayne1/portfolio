@@ -13,6 +13,8 @@ export default function ProjectReel() {
                     key={project.slug}
                     href={project.href}
                     className="mx-[15px] block shrink-0"
+                    target="_blank"
+                    rel="noopener noreferrer"
                 >
                     <div className="flex flex-col gap-3">
                         <div className="mt-1 relative h-[150px] w-[240px] overflow-hidden rounded-lg border border-black transition-all duration-300 hover:ring-2 hover:ring-white/50">
