@@ -24,7 +24,7 @@ export default function ProjectsPage() {
                     {projects.map((project) => (
                         <article
                             key={project.slug}
-                            className="group flex flex-col overflow-hidden rounded-lg border border-white/10 bg-white/5 transition hover:border-white/20 hover:bg-white/10"
+                            className="group flex flex-col  overflow-hidden rounded-lg border border-white/10 bg-white/5 transition hover:border-white/20 hover:bg-white/10"
                         >
                             <Link
                                 href={project.href}
@@ -45,54 +45,62 @@ export default function ProjectsPage() {
                                     </span>
                                 )}
                             </Link>
-                            <div className="flex flex-1 flex-col p-6">
-                                <Link
-                                    href={project.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-base font-medium text-white/80 transition hover:text-white"
-                                >
-                                    {project.title}
-                                </Link>
-                                <p className="mt-2 text-sm text-white/50 line-clamp-3">
-                                    {project.description}
-                                </p>
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    {project.tags.map((tag) => (
-                                        <span
-                                            key={tag}
-                                            className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white/60"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                                <div className="mt-5 flex items-center justify-between">
-                                    <Button
-                                        size="2"
-                                        variant="ghost"
-                                        color="gray"
-                                        asChild
-                                    >
-                                        <Link
-                                            href={project.href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            Live demo →
-                                        </Link>
-                                    </Button>
+                            <Flex
+                                direction="column"
+                                justify="between"
+                                className="flex-1 p-6"
+                            >
+                                <Flex direction="column">
                                     <Link
-                                        href={project.repo}
+                                        href={project.href}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        aria-label={`${project.title} on GitHub`}
-                                        className="text-white/50 transition hover:text-white"
+                                        className="text-base font-medium text-white/80 transition hover:text-white"
                                     >
-                                        <SiGithub size={18} />
+                                        {project.title}
                                     </Link>
-                                </div>
-                            </div>
+                                    <p className="mt-2 text-sm text-white/50 line-clamp-3">
+                                        {project.description}
+                                    </p>
+                                </Flex>
+                                <Flex direction="column">
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {project.tags.map((tag) => (
+                                            <span
+                                                key={tag}
+                                                className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white/60"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="mt-5 flex items-center justify-between">
+                                        <Button
+                                            size="2"
+                                            variant="ghost"
+                                            color="gray"
+                                            asChild
+                                        >
+                                            <Link
+                                                href={project.href}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Live demo →
+                                            </Link>
+                                        </Button>
+                                        <Link
+                                            href={project.repo}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label={`${project.title} on GitHub`}
+                                            className="text-white/50 transition hover:text-white"
+                                        >
+                                            <SiGithub size={18} />
+                                        </Link>
+                                    </div>
+                                </Flex>
+                            </Flex>
                         </article>
                     ))}
                 </div>
