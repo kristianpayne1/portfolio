@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Heading, Text, Flex } from "@radix-ui/themes";
 import { CustomMDX } from "app/components/mdx";
-import { formatDate, getBlogPosts } from "app/blog/utils";
+import { formatDate, getBlogPosts, getReadingTime } from "app/blog/utils";
 import { baseUrl } from "app/sitemap";
 
 export async function generateStaticParams() {
@@ -11,8 +13,13 @@ export async function generateStaticParams() {
     }));
 }
 
-export function generateMetadata({ params }) {
-    let post = getBlogPosts().find((post) => post.slug === params.slug);
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ slug: string }>;
+}) {
+    const { slug } = await params;
+    const post = getBlogPosts().find((post) => post.slug === slug);
     if (!post) {
         return;
     }
@@ -51,8 +58,13 @@ export function generateMetadata({ params }) {
     };
 }
 
-export default function Blog({ params }) {
-    let post = getBlogPosts().find((post) => post.slug === params.slug);
+export default async function Blog({
+    params,
+}: {
+    params: Promise<{ slug: string }>;
+}) {
+    const { slug } = await params;
+    const post = getBlogPosts().find((post) => post.slug === slug);
 
     if (!post) {
         notFound();
@@ -82,17 +94,43 @@ export default function Blog({ params }) {
                     }),
                 }}
             />
-            <h1 className="title font-semibold text-2xl tracking-tighter">
-                {post.metadata.title}
-            </h1>
-            <div className="flex justify-between items-center mt-2 mb-8 text-sm">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    {formatDate(post.metadata.publishedAt)}
-                </p>
-            </div>
-            <article className="prose">
-                <CustomMDX source={post.content} />
-            </article>
+            <Flex direction="column">
+                <Link
+                    href="/blog"
+                    className="mb-12 inline-block w-fit text-white/40 transition hover:text-white/70"
+                >
+                    <Text size="2">← All posts</Text>
+                </Link>
+                <Text
+                    size="1"
+                    className="uppercase tracking-wider text-white/40"
+                >
+                    {formatDate(post.metadata.publishedAt)} ·{" "}
+                    {getReadingTime(post.content)}
+                </Text>
+                <Heading
+                    as="h1"
+                    size={{ initial: "8", sm: "9" }}
+                    weight="medium"
+                    className="title mt-3 tracking-tight text-white/95"
+                >
+                    {post.metadata.title}
+                </Heading>
+                <Text as="p" size="3" className="mt-6 text-white/60">
+                    {post.metadata.summary}
+                </Text>
+                <div className="mt-12 mb-10 border-t border-white/10" />
+                <article className="prose max-w-2xl">
+                    <CustomMDX source={post.content} />
+                </article>
+                <div className="mt-16 border-t border-white/10" />
+                <Link
+                    href="/blog"
+                    className="mt-10 inline-block w-fit text-white/40 transition hover:text-white/70"
+                >
+                    <Text size="2">← All posts</Text>
+                </Link>
+            </Flex>
         </section>
     );
 }
