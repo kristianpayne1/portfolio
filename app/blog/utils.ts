@@ -88,3 +88,9 @@ export function formatDate(date: string, includeRelative = false) {
 
     return `${fullDate} (${formattedDate})`;
 }
+
+export function getReadingTime(content: string) {
+    const words = content.trim().split(/\s+/).length;
+    const minutes = Math.max(1, Math.round(words / 200));
+    return `${minutes} min read`;
+}
