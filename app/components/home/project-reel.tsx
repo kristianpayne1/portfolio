@@ -3,41 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import Marquee from "app/components/marquee";
-
-const projects = [
-    {
-        title: "ThreeJS | Chess",
-        image: "/projects/chess.png",
-        href: "https://kristianpayne1.github.io/threejs-chess/",
-    },
-    {
-        title: "ThreeJS | Forest Road",
-        image: "/projects/landscape.png",
-        href: "https://kristianpayne1.github.io/threejs-forest-road/",
-    },
-    {
-        title: "ThreeJS | Pirate Ship",
-        image: "/projects/boat.png",
-        href: "https://kristianpayne1.github.io/threejs-pirate-ship/",
-    },
-    {
-        title: "ThreeJS | Space Ship",
-        image: "/projects/space.png",
-        href: "https://kristianpayne1.github.io/threejs-space-ship/",
-    },
-    {
-        title: "ThreeJS | Basketball",
-        image: "/projects/basketball.png",
-        href: "https://kristianpayne1.github.io/threejs-basketball/",
-    },
-];
+import { projects } from "app/projects/projects";
 
 export default function ProjectReel() {
     return (
         <Marquee className="left-1/2 -translate-x-1/2 py-1" showArrows>
             {projects.map((project) => (
                 <Link
-                    key={project.href}
+                    key={project.slug}
                     href={project.href}
                     className="mx-[15px] block shrink-0"
                 >

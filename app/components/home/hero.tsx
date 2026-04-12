@@ -19,7 +19,7 @@ export default function Hero() {
                     as="p"
                     className="text-center mt-4 text-base leading-relaxed text-white/70"
                 >
-                    Building for the web with a thing for interactive visuals
+                    Building unique visuals and experiences for the web
                 </Text>
                 <Flex
                     gap="4"
