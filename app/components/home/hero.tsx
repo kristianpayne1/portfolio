@@ -34,7 +34,10 @@ export default function Hero() {
                         </Link>
                     </Button>
                     <Button size="3" variant="ghost" asChild>
-                        <Link href="/contact" color="gray">
+                        <Link
+                            href="mailto:contact@kristianpayne.dev"
+                            color="gray"
+                        >
                             Contact Me
                         </Link>
                     </Button>

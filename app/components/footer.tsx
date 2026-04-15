@@ -1,4 +1,4 @@
-import { FaRss, FaGithub, FaLinkedin } from "react-icons/fa";
+import { FaRss, FaGithub, FaLinkedin, FaEnvelope } from "react-icons/fa";
 
 export default function Footer() {
     return (
@@ -13,6 +13,15 @@ export default function Footer() {
                     >
                         <FaRss size={14} />
                         <p className="ml-2 h-7">rss</p>
+                    </a>
+                </li>
+                <li>
+                    <a
+                        className="flex items-center transition-all hover:text-neutral-800 dark:hover:text-neutral-100"
+                        href="mailto:contact@kristianpayne.dev"
+                    >
+                        <FaEnvelope size={14} />
+                        <p className="ml-2 h-7">email</p>
                     </a>
                 </li>
                 <li>
