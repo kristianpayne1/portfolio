@@ -11,6 +11,15 @@ export type Project = {
 
 export const projects: Project[] = [
     {
+        slug: "playstation-3-xmb",
+        title: "Playstation 3 XMB Recreation",
+        description: "A recreation of the PlayStation 3 XrossMediaBar (XMB).",
+        image: "/projects/xmb.png",
+        href: "https://kristianpayne1.github.io/playstation-3-xmb/",
+        repo: "https://github.com/kristianpayne1/playstation-3-xmb",
+        tags: ["ThreeJS", "GLSL", "React"],
+    },
+    {
         slug: "threejs-chess",
         title: "ThreeJS | Chess",
         description:
