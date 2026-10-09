@@ -1,0 +1,65 @@
+// All settings come from environment variables so the same image runs
+// anywhere. Defaults are chosen for running inside docker-compose.
+
+import fs from "node:fs";
+import path from "node:path";
+
+function required(name: string): string {
+    const value = process.env[name];
+    if (!value) {
+        throw new Error(`Missing required environment variable ${name}`);
+    }
+    return value;
+}
+
+const dataDir = process.env.DATA_DIR ?? "/data";
+
+export const config = {
+    // Secret the iOS Shortcut sends as "Authorization: Bearer <token>".
+    uploadToken: required("UPLOAD_TOKEN"),
+
+    // The upload server only listens here. Keep it on a private address and
+    // reach it over Tailscale. It must never be routed through the tunnel.
+    uploadHost: process.env.UPLOAD_HOST ?? "0.0.0.0",
+    uploadPort: Number(process.env.UPLOAD_PORT ?? 8081),
+
+    // The public server only has read routes (/entries and /media).
+    // This is the one the Cloudflare Tunnel points at.
+    publicHost: process.env.PUBLIC_HOST ?? "0.0.0.0",
+    publicPort: Number(process.env.PUBLIC_PORT ?? 8080),
+
+    // Used to build absolute media URLs in /entries responses.
+    publicUrl: (
+        process.env.PUBLIC_URL ?? "https://media.kristianpayne.dev"
+    ).replace(/\/$/, ""),
+
+    maxUploadBytes: Number(process.env.MAX_UPLOAD_MB ?? 1024) * 1024 * 1024,
+    maxCaptionLength: 2000,
+
+    // "software" (libx264) for now. "vaapi" is reserved for Intel
+    // hardware encoding later, see videoEncoderArgs() in media.ts.
+    videoEncoder: process.env.VIDEO_ENCODER ?? "software",
+
+    paths: {
+        database: path.join(dataDir, "feed.db"),
+        // Raw uploads wait here until they are processed.
+        incoming: path.join(dataDir, "incoming"),
+        // Uploads that failed to process are moved here for inspection.
+        failed: path.join(dataDir, "failed"),
+        // Served at /media/*.
+        publicMedia: path.join(dataDir, "media", "public"),
+        // Never served. Private entries keep their files here.
+        privateMedia: path.join(dataDir, "media", "private"),
+    },
+};
+
+// Make sure every folder exists before anything else touches the disk.
+for (const folder of [
+    dataDir,
+    config.paths.incoming,
+    config.paths.failed,
+    config.paths.publicMedia,
+    config.paths.privateMedia,
+]) {
+    fs.mkdirSync(folder, { recursive: true });
+}

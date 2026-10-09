@@ -1,96 +1,102 @@
-import React from "react";
-import { Flex, Heading, Button, Link } from "@radix-ui/themes";
-import Hero from "./components/home/hero";
-import ProjectReel from "./components/home/project-reel";
-import BlogHighlights from "./components/home/blog-highlights";
-import {
-    SiHtml5,
-    SiReact,
-    SiNextdotjs,
-    SiNodedotjs,
-    SiTypescript,
-    SiRust,
-    SiPython,
-    SiThreedotjs,
-} from "react-icons/si";
-import { IconType } from "react-icons";
-import { HiOutlineChevronDown } from "react-icons/hi";
+import { Flex, Text } from "@radix-ui/themes";
 
-const technologies: { name: string; icon: IconType; color: string }[] = [
-    { name: "HTML / JS", icon: SiHtml5, color: "#e34f26" },
-    { name: "React", icon: SiReact, color: "#61dafb" },
-    { name: "Next.js", icon: SiNextdotjs, color: "#ffffff" },
-    { name: "Node", icon: SiNodedotjs, color: "#339933" },
-    { name: "TypeScript", icon: SiTypescript, color: "#3178c6" },
-    { name: "Rust", icon: SiRust, color: "#ce422b" },
-    { name: "Python", icon: SiPython, color: "#3776ab" },
-    { name: "Three.js", icon: SiThreedotjs, color: "#ffffff" },
-];
+// Phase 1 feed: deliberately plain. Entries come from the feed service on
+// the home lab, served publicly through the Cloudflare Tunnel.
+const FEED_API_URL =
+    process.env.FEED_API_URL ?? "https://media.kristianpayne.dev";
 
-export default function Home() {
+// Dates render on the server, so pick the time zone explicitly.
+const TIME_ZONE = "Europe/London";
+
+// Rebuild the page in the background at most every 3 minutes.
+export const revalidate = 180;
+
+type Entry = {
+    id: string;
+    created_at: string;
+    type: "video" | "image" | "audio" | "text";
+    caption: string | null;
+    media_url: string | null;
+};
+
+async function getEntries(): Promise<Entry[] | null> {
+    try {
+        const response = await fetch(`${FEED_API_URL}/entries?limit=50`, {
+            next: { revalidate },
+        });
+        if (!response.ok) return null;
+        const data: { entries: Entry[] } = await response.json();
+        return data.entries;
+    } catch {
+        // The home lab being offline should not break the build or the site.
+        return null;
+    }
+}
+
+function formatDate(isoDate: string) {
+    return new Date(isoDate).toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: TIME_ZONE,
+    });
+}
+
+function EntryMedia({ entry }: { entry: Entry }) {
+    if (!entry.media_url) return null;
+
+    if (entry.type === "video") {
+        return (
+            <video
+                src={entry.media_url}
+                muted
+                loop
+                playsInline
+                controls
+                preload="metadata"
+            />
+        );
+    }
+    if (entry.type === "image") {
+        return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={entry.media_url} alt={entry.caption ?? ""} />
+        );
+    }
+    if (entry.type === "audio") {
+        return <audio src={entry.media_url} controls preload="metadata" />;
+    }
+    return null;
+}
+
+export default async function Home() {
+    const entries = await getEntries();
+
+    if (entries === null) {
+        return <Text>The feed is unavailable right now.</Text>;
+    }
+    if (entries.length === 0) {
+        return <Text>Nothing posted yet.</Text>;
+    }
+
     return (
-        <section>
-            <Flex direction="column" gap="12rem">
-                <Hero />
-                <div className="-mt-80 flex flex-col items-center gap-1 text-white/40 pointer-events-none z-1">
-                    <span className="text-xs tracking-widest uppercase">
-                        Scroll
-                    </span>
-                    <HiOutlineChevronDown className="animate-bounce-subtle w-5 h-5" />
-                </div>
-                <div>
-                    <Flex align="end" justify="between" className="mb-4">
-                        <Heading as="h2" className="text-white/80">
-                            Highlights
-                        </Heading>
-                        <Button size="2" variant="ghost" asChild>
-                            <Link href="/projects" color="gray">
-                                View All Projects →
-                            </Link>
-                        </Button>
+        <Flex direction="column" gap="6" className="max-w-xl">
+            {entries.map((entry) => (
+                <article key={entry.id}>
+                    <Flex direction="column" gap="2">
+                        <EntryMedia entry={entry} />
+                        {entry.caption && (
+                            <Text className="whitespace-pre-wrap">
+                                {entry.caption}
+                            </Text>
+                        )}
+                        <Text size="1" color="gray">
+                            <time dateTime={entry.created_at}>
+                                {formatDate(entry.created_at)}
+                            </time>
+                        </Text>
                     </Flex>
-                    <ProjectReel />
-                </div>
-                <div>
-                    <Heading as="h2" className="text-white/80">
-                        Technologies
-                    </Heading>
-                    <div className="mt-6 grid grid-cols-4 gap-8 lg:grid-cols-8">
-                        {technologies.map((tech) => (
-                            <div
-                                key={tech.name}
-                                className="group flex flex-col items-center gap-2"
-                                style={
-                                    {
-                                        "--brand": tech.color,
-                                    } as React.CSSProperties
-                                }
-                            >
-                                <tech.icon
-                                    size={64}
-                                    className="text-white/70 transition-colors duration-300 group-hover:text-(--brand)"
-                                />
-                                <span className="text-xs text-white/50">
-                                    {tech.name}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div>
-                    <Flex align="end" justify="between" className="mb-4">
-                        <Heading as="h2" className="text-white/80">
-                            Latest Posts
-                        </Heading>
-                        <Button size="2" variant="ghost" asChild>
-                            <Link href="/blog" color="gray">
-                                View All Posts →
-                            </Link>
-                        </Button>
-                    </Flex>
-                    <BlogHighlights />
-                </div>
-            </Flex>
-        </section>
+                </article>
+            ))}
+        </Flex>
     );
 }
