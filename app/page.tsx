@@ -1,7 +1,7 @@
-import { Flex, Text } from "@radix-ui/themes";
+import PostBody from "./components/post-body";
 
-// Phase 1 feed: deliberately plain. Entries come from the feed service on
-// the home lab, served publicly through the Cloudflare Tunnel.
+// The feed: plain HTML styled by feed-service/src/theme.css. Entries come
+// from the feed service on the home lab, served through the Cloudflare Tunnel.
 const FEED_API_URL =
     process.env.FEED_API_URL ?? "https://media.kristianpayne.dev";
 
@@ -15,14 +15,19 @@ type Entry = {
     id: string;
     created_at: string;
     type: "video" | "image" | "audio" | "text";
-    caption: string | null;
+    title: string | null;
+    caption: string | null; // Markdown
     media_url: string | null;
 };
 
 async function getEntries(): Promise<Entry[] | null> {
     try {
         const response = await fetch(`${FEED_API_URL}/entries?limit=50`, {
-            next: { revalidate },
+            // Always fresh in development so new posts show on refresh.
+            next: {
+                revalidate:
+                    process.env.NODE_ENV === "development" ? 0 : revalidate,
+            },
         });
         if (!response.ok) return null;
         const data: { entries: Entry[] } = await response.json();
@@ -59,7 +64,7 @@ function EntryMedia({ entry }: { entry: Entry }) {
     if (entry.type === "image") {
         return (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={entry.media_url} alt={entry.caption ?? ""} />
+            <img src={entry.media_url} alt={entry.title ?? ""} />
         );
     }
     if (entry.type === "audio") {
@@ -72,31 +77,20 @@ export default async function Home() {
     const entries = await getEntries();
 
     if (entries === null) {
-        return <Text>The feed is unavailable right now.</Text>;
+        return <p>The feed is unavailable right now.</p>;
     }
     if (entries.length === 0) {
-        return <Text>Nothing posted yet.</Text>;
+        return <p>Nothing posted yet.</p>;
     }
 
-    return (
-        <Flex direction="column" gap="6" className="max-w-xl">
-            {entries.map((entry) => (
-                <article key={entry.id}>
-                    <Flex direction="column" gap="2">
-                        <EntryMedia entry={entry} />
-                        {entry.caption && (
-                            <Text className="whitespace-pre-wrap">
-                                {entry.caption}
-                            </Text>
-                        )}
-                        <Text size="1" color="gray">
-                            <time dateTime={entry.created_at}>
-                                {formatDate(entry.created_at)}
-                            </time>
-                        </Text>
-                    </Flex>
-                </article>
-            ))}
-        </Flex>
-    );
+    return entries.map((entry) => (
+        <article key={entry.id}>
+            <time dateTime={entry.created_at}>
+                {formatDate(entry.created_at)}
+            </time>
+            {entry.title && <h2>{entry.title}</h2>}
+            <EntryMedia entry={entry} />
+            {entry.caption && <PostBody markdown={entry.caption} />}
+        </article>
+    ));
 }

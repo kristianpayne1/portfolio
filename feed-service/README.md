@@ -3,7 +3,8 @@
 Upload and read API for the kristianpayne.dev feed. Runs on the home lab in Docker.
 
 ```
-iPhone Shortcut ──Tailscale──▶ :8081  upload server   POST /upload
+iPhone Shortcut ─┐
+Compose page    ─┴─Tailscale──▶ :8081  upload server   POST /upload, compose page
                                        │
                                        ▼  ./data (SQLite + media files)
                                        │
@@ -16,7 +17,7 @@ so nothing you do in the Cloudflare dashboard can expose uploads by accident.
 | Port | What                          | Reachable from                                  |
 | ---- | ----------------------------- | ----------------------------------------------- |
 | 8080 | `/entries`, `/media/*`, `/health` | Only the `cloudflared` container (not published on the host) |
-| 8081 | `/upload`                     | `127.0.0.1` on the host, shared to your tailnet by `tailscale serve` |
+| 8081 | compose page, `/upload`, `/api/*` | `127.0.0.1` on the host, shared to your tailnet by `tailscale serve` |
 
 Neither container joins the Gluetun/VPN network.
 
@@ -27,7 +28,7 @@ Neither container joins the Gluetun/VPN network.
 | Video (MOV, MP4)  | 720p H.264 MP4. iPhone HDR is tone mapped so it does not look washed out. |
 | Photo (HEIC, JPEG, PNG, WebP) | WebP, max 2048px, EXIF and GPS removed            |
 | Audio (M4A, AAC, MP3, WAV)    | M4A. AAC is copied as-is, anything else is re-encoded. |
-| Caption only      | Text entry, published immediately                              |
+| Text only (title and/or body) | Text entry, published immediately                  |
 
 All metadata (including location) is stripped from every file. File types are
 detected from the file contents, not the name. Anything else gets a `415`.
@@ -112,6 +113,10 @@ docker compose logs -f feed
 Update after pulling new code:
 
 ```bash
+git pull
+```
+
+```bash
 docker compose up -d --build
 ```
 
@@ -121,8 +126,9 @@ To retry, move both files back into `data/incoming/` and restart with
 
 **Back up** by copying the whole `data/` folder. It holds the database and every media file.
 
-**Deleting an entry** is manual for now: `sqlite3 data/feed.db "DELETE FROM entries WHERE id = 'abc123'"`
-and delete its file from `data/media/public/`.
+**Deleting a post:** use the Delete button on the compose page. It removes the entry and
+its file. Cloudflare may still have a cached copy of the media file, so for anything
+sensitive also purge its URL in Cloudflare (Caching > Configuration > Custom Purge).
 
 ## Settings
 
@@ -136,19 +142,37 @@ Set in `docker-compose.yml` (secrets in `.env`):
 | `MAX_UPLOAD_MB` | `1024`                            | Largest accepted file                      |
 | `VIDEO_ENCODER` | `software`                        | `software` (libx264). `vaapi` is a placeholder, see `videoEncoderArgs()` in `src/media.ts` |
 
+## Compose page
+
+Open `https://hp-elitedesk.tail90c0ce.ts.net/` in any browser on a device connected to
+Tailscale. It asks for the upload token once and remembers it in that browser.
+
+- Write a post with an optional title, a Markdown body, an optional file, and a private toggle.
+- Shows upload progress for big files.
+- Lists your 50 most recent posts, including private ones, each with a Delete button.
+
+The body supports Markdown: `**bold**`, `*italic*`, `[links](https://example.com)`,
+bare URLs, lists, quotes and code. Single line breaks are kept. Raw HTML is shown as
+text, never run.
+
 ## API
 
 **`POST /upload`** (port 8081, needs `Authorization: Bearer <token>`)
 
-Multipart form fields, all optional, but send at least a file or a caption:
+Multipart form fields, all optional, but send at least a file, a title or a caption:
 
 - `file`: one video, photo or audio file
-- `caption`: text, up to 2000 characters
+- `title`: a short heading, up to 200 characters
+- `caption`: the post body in Markdown, up to 20,000 characters
 - `private`: `true` keeps the entry out of `/entries`. Private files are stored in
   `data/media/private/`, which is never served.
 
 Responds `201` for text posts and `202` for media (still processing). Both include a
 `message` the Shortcut shows as a notification.
+
+**`GET /api/entries`** (port 8081, needs the token): the 50 newest posts, including private ones.
+
+**`DELETE /api/entries/<id>`** (port 8081, needs the token): deletes a post and its media file.
 
 **`GET /entries?page=1&limit=20`** (port 8080, public)
 
@@ -161,29 +185,36 @@ Responds `201` for text posts and `202` for media (still processing). Both inclu
             "id": "BtvDvOsxvMHB",
             "created_at": "2026-10-09T22:59:12.207Z",
             "type": "video",
-            "caption": "First vlog",
+            "title": "First vlog",
+            "caption": "Testing the **new** camera",
             "media_url": "https://media.kristianpayne.dev/media/BtvDvOsxvMHB.mp4"
         }
     ]
 }
 ```
 
-`limit` is capped at 50. `type` is `video`, `image`, `audio` or `text` (`media_url` is `null` for text).
+`limit` is capped at 50. `type` is `video`, `image`, `audio` or `text` (`media_url` is `null` for text). `title` and `caption` can each be `null`.
 
 **`GET /media/<file>`**: processed files, cached for a year (file names never change).
 Supports range requests, which iOS Safari needs to play video.
 
 ## Run it locally (optional)
 
-Needs Node 24 and ffmpeg. HEIC photos also need `heif-dec`, which is easiest to get by
-using Docker instead.
+From the repo root, this runs the feed service and the site together against a local
+database, so you can try things without touching the live feed:
 
 ```bash
-npm install
-UPLOAD_TOKEN=dev DATA_DIR=./data npm run dev
+npm run dev:local
 ```
 
-`npm run typecheck` checks the types. Node runs the `.ts` files directly, so there is no build step.
+- Site: http://localhost:3000
+- Compose page: http://localhost:8081 (token `dev`)
+- Local posts are stored in `feed-service/data-local/`. Delete it to start fresh.
+
+Needs Node 24 and ffmpeg. HEIC photos also need `heif-dec` (`brew install libheif`).
+
+`npm run typecheck` (in `feed-service/`) checks the types. Node runs the `.ts` files
+directly, so there is no build step.
 
 ---
 

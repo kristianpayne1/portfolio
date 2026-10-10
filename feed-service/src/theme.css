@@ -1,0 +1,190 @@
+/*
+ * The one stylesheet for kristianpayne.dev.
+ *
+ * Shared by both pages so they always look the same:
+ *   - the feed (Next.js) imports it in app/layout.tsx
+ *   - the compose page is sent it by the upload server at /theme.css
+ *
+ * Plain HTML elements, one narrow column, always dark.
+ */
+
+:root {
+    color-scheme: dark;
+    --width: 720px;
+    --font: Verdana, sans-serif;
+    --background: #111113; /* the original near-black */
+    --heading: #eeeeee;
+    --text: #dddddd;
+    --muted: #b0b4ba;
+    --link: #9eb1ff;
+    --border: #3a3b40;
+    --code-background: #000000;
+    --danger: #ff9592;
+}
+
+body {
+    max-width: var(--width);
+    margin: auto;
+    padding: 20px;
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.5;
+    background-color: var(--background);
+    color: var(--text);
+    overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    color: var(--heading);
+    line-height: 1.3;
+}
+
+strong,
+b {
+    color: var(--heading);
+}
+
+a {
+    color: var(--link);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+time {
+    font-family: monospace;
+    font-size: 15px;
+    color: var(--muted);
+}
+
+.muted {
+    color: var(--muted);
+}
+
+hr {
+    border: 0;
+    border-top: 1px dashed var(--border);
+}
+
+img,
+video {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+audio {
+    width: 100%;
+}
+
+code {
+    font-family: monospace;
+    padding: 2px;
+    background-color: var(--code-background);
+    color: var(--heading);
+    border-radius: 3px;
+}
+
+pre {
+    padding: 1px 15px;
+    background-color: var(--code-background);
+    border-radius: 3px;
+    overflow-x: auto;
+}
+
+pre code {
+    padding: 0;
+}
+
+blockquote {
+    margin-left: 0;
+    padding-left: 20px;
+    border-left: 1px solid var(--border);
+    font-style: italic;
+}
+
+/* ---- Feed ---- */
+
+/* Each post: date, optional title, media, body. Dashed line between posts. */
+article {
+    padding: 1.5em 0;
+}
+
+article + article {
+    border-top: 1px dashed var(--border);
+}
+
+article h2 {
+    font-size: 1.2em;
+    margin: 0.25em 0 0.5em;
+}
+
+article video,
+article img,
+article audio {
+    margin: 0.75em 0;
+}
+
+/* ---- Forms (compose page) ---- */
+
+input[type="text"],
+input[type="password"],
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    font: inherit; /* 16px, so iOS Safari does not zoom in when tapped */
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--link);
+}
+
+textarea {
+    min-height: 12em;
+    resize: vertical;
+}
+
+button,
+::file-selector-button {
+    font: inherit;
+    font-size: 15px;
+    padding: 4px 14px;
+    color: var(--heading);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+button:hover,
+::file-selector-button:hover {
+    border-color: var(--link);
+}
+
+input[type="file"] {
+    font: inherit;
+    font-size: 15px;
+    color: var(--muted);
+}
+
+input[type="checkbox"] {
+    accent-color: var(--link);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}

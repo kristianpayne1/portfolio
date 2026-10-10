@@ -41,6 +41,7 @@ export async function buildPublicServer() {
                     id: entry.id,
                     created_at: entry.created_at,
                     type: entry.type,
+                    title: entry.title,
                     caption: entry.caption,
                     media_url: entry.media_path
                         ? `${config.publicUrl}/media/${entry.media_path}`

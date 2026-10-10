@@ -1,7 +1,8 @@
 // Turns raw iPhone uploads into web-friendly files.
 //
 //   video -> 720p H.264 MP4 (ffmpeg)
-//   image -> WebP, EXIF and GPS stripped (heif-dec for HEIC, then sharp)
+//   image -> WebP, EXIF and GPS stripped (heif-dec for HEIC, then sharp).
+//            Animated GIFs (and animated WebP) stay animated.
 //   audio -> AAC in an M4A container (ffmpeg)
 //
 // Every path strips metadata, because iPhone files carry GPS location.
@@ -25,6 +26,7 @@ const allowedMimeTypes: Record<string, Exclude<EntryType, "text">> = {
     "image/jpeg": "image",
     "image/png": "image",
     "image/webp": "image",
+    "image/gif": "image",
     "image/heic": "image", // iPhone photos
     "image/heif": "image",
     "audio/x-m4a": "audio", // Voice Memos
@@ -196,7 +198,9 @@ async function processImage(
     }
 
     try {
-        await sharp(isHeic ? decodedPath : inputPath)
+        // animated: true keeps every frame of a GIF or animated WebP.
+        // It makes no difference for still images.
+        await sharp(isHeic ? decodedPath : inputPath, { animated: true })
             .rotate() // apply the EXIF orientation before metadata is dropped
             .resize({
                 width: 2048,

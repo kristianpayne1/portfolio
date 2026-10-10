@@ -19,6 +19,8 @@ export type Job = {
     created_at: string;
     type: Exclude<EntryType, "text">;
     mime: string;
+    // Optional so job files written before titles existed still load.
+    title?: string | null;
     caption: string | null;
     private: boolean;
     raw_path: string; // the untouched upload inside the incoming folder
@@ -69,6 +71,7 @@ async function runJob(job: Job): Promise<void> {
             created_at: job.created_at,
             type: job.type,
             media_path: fileName,
+            title: job.title ?? null,
             caption: job.caption,
             private: job.private,
         });

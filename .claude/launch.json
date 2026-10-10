@@ -1,0 +1,37 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "compose-preview",
+            "runtimeExecutable": "node",
+            "runtimeArgs": [
+                "--disable-warning=ExperimentalWarning",
+                "feed-service/src/main.ts"
+            ],
+            "env": {
+                "UPLOAD_TOKEN": "dev",
+                "DATA_DIR": "/private/tmp/claude-501/-Users-kristian-Projects-portfolio/81276946-00df-45a6-be94-12e80fdb8e97/scratchpad/themepreview",
+                "UPLOAD_HOST": "127.0.0.1",
+                "PUBLIC_HOST": "127.0.0.1",
+                "UPLOAD_PORT": "8091",
+                "PUBLIC_PORT": "8090",
+                "PUBLIC_URL": "http://localhost:8090"
+            },
+            "port": 8091
+        },
+        {
+            "name": "site-preview",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": [
+                "next",
+                "dev",
+                "-p",
+                "3128"
+            ],
+            "env": {
+                "FEED_API_URL": "http://localhost:8090"
+            },
+            "port": 3128
+        }
+    ]
+}

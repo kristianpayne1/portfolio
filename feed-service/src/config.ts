@@ -12,7 +12,9 @@ function required(name: string): string {
     return value;
 }
 
-const dataDir = process.env.DATA_DIR ?? "/data";
+// Resolved to an absolute path so "./data-local" works too
+// (@fastify/static refuses relative paths).
+const dataDir = path.resolve(process.env.DATA_DIR ?? "/data");
 
 export const config = {
     // Secret the iOS Shortcut sends as "Authorization: Bearer <token>".
@@ -34,7 +36,8 @@ export const config = {
     ).replace(/\/$/, ""),
 
     maxUploadBytes: Number(process.env.MAX_UPLOAD_MB ?? 1024) * 1024 * 1024,
-    maxCaptionLength: 2000,
+    maxTitleLength: 200,
+    maxCaptionLength: 20_000, // room for longer Markdown posts
 
     // "software" (libx264) for now. "vaapi" is reserved for Intel
     // hardware encoding later, see videoEncoderArgs() in media.ts.

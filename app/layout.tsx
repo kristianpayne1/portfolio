@@ -1,7 +1,6 @@
-import "./global.css";
-import "@radix-ui/themes/styles.css";
+// Shared with the compose page on the upload server, so both look the same.
+import "../feed-service/src/theme.css";
 import type { Metadata } from "next";
-import { Container, Theme } from "@radix-ui/themes";
 
 export const metadata: Metadata = {
     metadataBase: new URL("https://kristianpayne.dev"),
@@ -21,11 +20,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body>
-                <Theme appearance="dark">
-                    <Container size="2" px="4" py="6">
-                        {children}
-                    </Container>
-                </Theme>
+                <main>{children}</main>
             </body>
         </html>
     );

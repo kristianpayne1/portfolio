@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex" />
+        <title>Post</title>
+        <!-- The same stylesheet as the feed, so both pages look the same. -->
+        <link rel="stylesheet" href="/theme.css" />
+        <!-- Layout for this page only. Colours and fonts come from theme.css. -->
+        <style>
+            form {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            .row {
+                display: flex;
+                gap: 16px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            /* Recent posts: date, then text, like a blog archive list. */
+            ul.recent {
+                list-style: none;
+                padding: 0;
+            }
+            ul.recent li {
+                display: flex;
+                gap: 12px;
+                align-items: baseline;
+                padding: 2px 0;
+            }
+            ul.recent time {
+                flex: none;
+                white-space: nowrap;
+            }
+            /* Same size as post titles on the feed. */
+            h2 {
+                font-size: 1.2em;
+                margin: 2em 0 0;
+            }
+            ul.recent .text {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            /* Delete looks like a quiet link, not a big button. */
+            button.delete {
+                border: none;
+                padding: 0;
+                font-size: 14px;
+                color: var(--danger);
+            }
+            button.delete:hover {
+                text-decoration: underline;
+            }
+            [hidden] {
+                display: none !important;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <!-- Shown until the upload token has been entered once. -->
+            <form id="token-form" hidden>
+                <label for="token">Upload token</label>
+                <input id="token" type="password" autocomplete="off" required />
+                <div class="row"><button type="submit">Save</button></div>
+                <p class="muted">Saved in this browser only.</p>
+            </form>
+
+            <div id="app" hidden>
+                <form id="post-form">
+                    <input
+                        name="title"
+                        type="text"
+                        placeholder="Title (optional)"
+                        maxlength="200"
+                    />
+                    <textarea
+                        name="caption"
+                        placeholder="Write something."
+                    ></textarea>
+                    <input
+                        name="file"
+                        type="file"
+                        accept="image/*,video/*,audio/*"
+                    />
+                    <div class="row">
+                        <label
+                            ><input
+                                name="private"
+                                type="checkbox"
+                                value="true"
+                            />
+                            Private</label
+                        >
+                        <button type="submit">Post</button>
+                        <span id="status" class="muted"></span>
+                    </div>
+                </form>
+
+                <h2>Recent</h2>
+                <p class="muted">Media appears here once processed.</p>
+                <ul id="recent" class="recent"></ul>
+
+                <p class="muted"><a href="#" id="forget">Forget token</a></p>
+            </div>
+        </main>
+
+        <script>
+            const TOKEN_KEY = "feedUploadToken";
+
+            const tokenForm = document.getElementById("token-form");
+            const app = document.getElementById("app");
+            const postForm = document.getElementById("post-form");
+            const statusText = document.getElementById("status");
+            const recentList = document.getElementById("recent");
+
+            function getToken() {
+                try {
+                    return localStorage.getItem(TOKEN_KEY);
+                } catch {
+                    return null;
+                }
+            }
+
+            function setToken(token) {
+                try {
+                    if (token) localStorage.setItem(TOKEN_KEY, token);
+                    else localStorage.removeItem(TOKEN_KEY);
+                } catch {}
+            }
+
+            function showTokenForm() {
+                setToken(null);
+                app.hidden = true;
+                tokenForm.hidden = false;
+            }
+
+            function showApp() {
+                tokenForm.hidden = true;
+                app.hidden = false;
+                loadRecent();
+            }
+
+            tokenForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                setToken(document.getElementById("token").value.trim());
+                showApp();
+            });
+
+            document
+                .getElementById("forget")
+                .addEventListener("click", (event) => {
+                    event.preventDefault();
+                    showTokenForm();
+                });
+
+            // Small wrapper that adds the token and handles a wrong one.
+            async function api(method, url) {
+                const response = await fetch(url, {
+                    method,
+                    headers: { Authorization: `Bearer ${getToken()}` },
+                });
+                if (response.status === 401) {
+                    showTokenForm();
+                    throw new Error("Wrong token");
+                }
+                return response.json();
+            }
+
+            async function loadRecent() {
+                const { entries } = await api("GET", "/api/entries");
+                recentList.replaceChildren(...entries.map(renderEntry));
+            }
+
+            // Built with textContent, never innerHTML, so post text
+            // can never inject markup into this page.
+            function renderEntry(entry) {
+                const item = document.createElement("li");
+
+                const date = document.createElement("time");
+                date.dateTime = entry.created_at;
+                // Short form, e.g. "10 Oct, 11:55", to leave room on phones.
+                date.textContent = new Date(entry.created_at).toLocaleString(
+                    "en-GB",
+                    {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Europe/London",
+                    }
+                );
+
+                const text = document.createElement("span");
+                text.className = "text";
+                const label = entry.title || entry.caption || `(${entry.type})`;
+                text.textContent =
+                    (entry.private ? "[private] " : "") +
+                    (entry.type !== "text" ? `[${entry.type}] ` : "") +
+                    label;
+
+                const remove = document.createElement("button");
+                remove.className = "delete";
+                remove.textContent = "Delete";
+                remove.addEventListener("click", async () => {
+                    if (!confirm(`Delete "${label.slice(0, 60)}"?`)) return;
+                    await api("DELETE", `/api/entries/${entry.id}`);
+                    loadRecent();
+                });
+
+                item.append(date, text, remove);
+                return item;
+            }
+
+            // Uses XMLHttpRequest instead of fetch to show upload progress,
+            // which matters for videos.
+            postForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                const button = postForm.querySelector("button");
+                button.disabled = true;
+
+                const request = new XMLHttpRequest();
+                request.open("POST", "/upload");
+                request.setRequestHeader(
+                    "Authorization",
+                    `Bearer ${getToken()}`
+                );
+
+                request.upload.addEventListener("progress", (progress) => {
+                    if (progress.lengthComputable) {
+                        const percent = Math.round(
+                            (progress.loaded / progress.total) * 100
+                        );
+                        statusText.textContent = `Uploading ${percent}%`;
+                    }
+                });
+
+                request.addEventListener("load", () => {
+                    button.disabled = false;
+                    if (request.status === 401) return showTokenForm();
+
+                    let body = {};
+                    try {
+                        body = JSON.parse(request.responseText);
+                    } catch {}
+
+                    if (request.status >= 400) {
+                        statusText.textContent =
+                            body.error ||
+                            body.message ||
+                            "Something went wrong";
+                        return;
+                    }
+                    statusText.textContent = body.message;
+                    postForm.reset();
+                    loadRecent();
+                });
+
+                request.addEventListener("error", () => {
+                    button.disabled = false;
+                    statusText.textContent = "Could not reach the server";
+                });
+
+                request.send(new FormData(postForm));
+            });
+
+            if (getToken()) showApp();
+            else showTokenForm();
+        </script>
+    </body>
+</html>
