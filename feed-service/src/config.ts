@@ -35,6 +35,12 @@ export const config = {
         process.env.PUBLIC_URL ?? "https://media.kristianpayne.dev"
     ).replace(/\/$/, ""),
 
+    // The feed website. The compose page links to it and to each post's page.
+    siteUrl: (process.env.SITE_URL ?? "https://kristianpayne.dev").replace(
+        /\/$/,
+        ""
+    ),
+
     maxUploadBytes: Number(process.env.MAX_UPLOAD_MB ?? 1024) * 1024 * 1024,
     maxTitleLength: 200,
     maxCaptionLength: 20_000, // room for longer Markdown posts
@@ -42,6 +48,12 @@ export const config = {
     // "software" (libx264) for now. "vaapi" is reserved for Intel
     // hardware encoding later, see videoEncoderArgs() in media.ts.
     videoEncoder: process.env.VIDEO_ENCODER ?? "software",
+
+    // Cleanup (see cleanup.ts), to keep the home lab's disk from filling up.
+    // Media added in the compose page but never published is deleted after:
+    unusedMediaHours: Number(process.env.UNUSED_MEDIA_HOURS ?? 24),
+    // Uploads that failed to process are kept for a manual retry, then deleted:
+    failedUploadDays: Number(process.env.FAILED_UPLOAD_DAYS ?? 7),
 
     paths: {
         database: path.join(dataDir, "feed.db"),
@@ -53,6 +65,9 @@ export const config = {
         publicMedia: path.join(dataDir, "media", "public"),
         // Never served. Private entries keep their files here.
         privateMedia: path.join(dataDir, "media", "private"),
+        // Never served. Media added in the compose page waits here until
+        // its post is published (then it moves to public or private).
+        draftMedia: path.join(dataDir, "media", "drafts"),
     },
 };
 
@@ -63,6 +78,7 @@ for (const folder of [
     config.paths.failed,
     config.paths.publicMedia,
     config.paths.privateMedia,
+    config.paths.draftMedia,
 ]) {
     fs.mkdirSync(folder, { recursive: true });
 }

@@ -3,13 +3,14 @@
 //
 // GET /entries?limit=20          public entries, newest first
 // GET /entries?before=<cursor>   the next (older) page, using nextCursor
+// GET /entries/<id>              one public post (for its own page)
 // GET /media/<file>              processed media files
 // GET /health                    for checking the service is up
 
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { config } from "./config.ts";
-import { listPublicEntries } from "./db.ts";
+import { findPublicEntry, listPublicEntries, type Entry } from "./db.ts";
 
 export async function buildPublicServer() {
     const app = Fastify({ logger: true });
@@ -44,23 +45,49 @@ export async function buildPublicServer() {
                 nextCursor: hasMore
                     ? entries[entries.length - 1].created_at
                     : null,
-                entries: entries.map((entry) => ({
-                    id: entry.id,
-                    created_at: entry.created_at,
-                    type: entry.type,
-                    title: entry.title,
-                    caption: entry.caption,
-                    media_url: entry.media_path
-                        ? `${config.publicUrl}/media/${entry.media_path}`
-                        : null,
-                })),
+                entries: entries.map(toPublicJson),
             };
+        }
+    );
+
+    app.get<{ Params: { id: string } }>(
+        "/entries/:id",
+        async (request, reply) => {
+            const entry = findPublicEntry(request.params.id);
+            reply.header("Access-Control-Allow-Origin", "*");
+            if (!entry) {
+                return reply.code(404).send({ error: "No such post" });
+            }
+            reply.header("Cache-Control", "public, max-age=60");
+            return toPublicJson(entry);
         }
     );
 
     app.get("/health", async () => ({ ok: true }));
 
     return app;
+}
+
+// The fields visitors may see. Never includes the private flag or file paths.
+function toPublicJson(entry: Entry) {
+    return {
+        id: entry.id,
+        created_at: entry.created_at,
+        type: entry.type,
+        title: entry.title,
+        caption: absoluteMediaLinks(entry.caption),
+        media_url: entry.media_path
+            ? `${config.publicUrl}/media/${entry.media_path}`
+            : null,
+    };
+}
+
+// Posts embed media as "](media/<file>)". Turn that into a full URL so the
+// feed can use it as-is, wherever it is rendered.
+function absoluteMediaLinks(markdown: string | null): string | null {
+    return (
+        markdown?.replaceAll("](media/", `](${config.publicUrl}/media/`) ?? null
+    );
 }
 
 function clamp(value: number, min: number, max: number): number {

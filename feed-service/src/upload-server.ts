@@ -8,8 +8,11 @@
 //   caption  optional  the post body, in Markdown
 //   private  optional  "true" to hide the entry from the public feed
 //   At least one of file, title or caption is required.
+// POST   /api/media         add a file to embed in a post's Markdown
+//                           (multipart "file"). Waits until it is processed,
+//                           then returns the Markdown to insert.
 // GET    /api/entries       recent posts, including private ones
-// DELETE /api/entries/:id   delete a post and its media file
+// DELETE /api/entries/:id   delete a post and all of its media
 //
 // Everything except the compose page needs the bearer token.
 
@@ -20,14 +23,20 @@ import { pipeline } from "node:stream/promises";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import multipart from "@fastify/multipart";
 import { config } from "./config.ts";
-import { deleteEntry, insertEntry, listRecentEntries } from "./db.ts";
-import { enqueueJob } from "./jobs.ts";
-import { detectMediaType } from "./media.ts";
+import {
+    deleteEntry,
+    insertDraftMedia,
+    insertEntry,
+    listRecentEntries,
+} from "./db.ts";
+import { deleteEmbeddedMedia, publishEmbeddedMedia } from "./embedded-media.ts";
+import { enqueueJob, runInQueue } from "./jobs.ts";
+import { detectMediaType, outputExtension, processMedia } from "./media.ts";
 
-const composePage = fs.readFileSync(
-    new URL("./compose.html", import.meta.url),
-    "utf8"
-);
+// "__SITE_URL__" in the page is replaced with the feed website's address.
+const composePage = fs
+    .readFileSync(new URL("./compose.html", import.meta.url), "utf8")
+    .replaceAll("__SITE_URL__", config.siteUrl);
 const theme = fs.readFileSync(new URL("./theme.css", import.meta.url), "utf8");
 
 export async function buildUploadServer() {
@@ -52,6 +61,8 @@ export async function buildUploadServer() {
 
     app.post("/upload", { onRequest: requireToken }, handleUpload);
 
+    app.post("/api/media", { onRequest: requireToken }, handleMediaUpload);
+
     app.get("/api/entries", { onRequest: requireToken }, async () => {
         return { entries: listRecentEntries(50) };
     });
@@ -70,6 +81,7 @@ export async function buildUploadServer() {
                     : config.paths.publicMedia;
                 removeFile(path.join(folder, entry.media_path));
             }
+            await deleteEmbeddedMedia(entry.id);
             return { deleted: entry.id };
         }
     );
@@ -143,6 +155,7 @@ async function handleUpload(request: FastifyRequest, reply: FastifyReply) {
                 .code(400)
                 .send({ error: "Send a file, some text, or both" });
         }
+        await publishEmbeddedMedia(caption, id, isPrivate);
         insertEntry({
             id,
             created_at: createdAt,
@@ -166,6 +179,7 @@ async function handleUpload(request: FastifyRequest, reply: FastifyReply) {
         return reply.code(415).send({ error: "Unsupported file type" });
     }
 
+    await publishEmbeddedMedia(caption, id, isPrivate);
     await enqueueJob({
         id,
         created_at: createdAt,
@@ -185,6 +199,50 @@ async function handleUpload(request: FastifyRequest, reply: FastifyReply) {
     });
 }
 
+// Media for embedding in Markdown. Processed straight away (in the shared
+// queue) into the drafts folder, so the compose page knows it is ready.
+async function handleMediaUpload(request: FastifyRequest, reply: FastifyReply) {
+    const file = await request.file();
+    if (!file || file.fieldname !== "file") {
+        return reply.code(400).send({ error: 'Send one file as "file"' });
+    }
+
+    const id = newId();
+    const rawPath = path.join(config.paths.incoming, `${id}.upload`);
+
+    try {
+        await pipeline(file.file, fs.createWriteStream(rawPath));
+
+        const media = await detectMediaType(rawPath);
+        if (!media) {
+            return reply.code(415).send({ error: "Unsupported file type" });
+        }
+
+        const fileName = `${id}.${outputExtension[media.type]}`;
+        const outputPath = path.join(config.paths.draftMedia, fileName);
+        try {
+            await runInQueue(() =>
+                processMedia(media.type, media.mime, rawPath, outputPath)
+            );
+        } catch (error) {
+            removeFile(outputPath); // do not leave a half-written file
+            throw error;
+        }
+        insertDraftMedia(id, fileName);
+
+        return {
+            id,
+            type: media.type,
+            // The original file name is the default caption.
+            markdown: `![${captionFromFileName(file.filename)}](media/${fileName})`,
+            // The bare reference, for when the page supplies its own caption.
+            src: `media/${fileName}`,
+        };
+    } finally {
+        removeFile(rawPath);
+    }
+}
+
 function hasValidToken(request: FastifyRequest): boolean {
     const header = request.headers.authorization ?? "";
     const expected = Buffer.from(`Bearer ${config.uploadToken}`);
@@ -199,6 +257,13 @@ function hasValidToken(request: FastifyRequest): boolean {
 
 // 12 random URL-safe characters. Also used as the media file name, so it
 // must not be guessable.
+// "IMG_1234.HEIC" becomes "IMG_1234". Square brackets and backslashes are
+// escaped so the name cannot break the Markdown around it.
+function captionFromFileName(fileName: string | undefined): string {
+    const name = (fileName ?? "").replace(/\.[^.]+$/, "").trim();
+    return name.replace(/[\\[\]]/g, (character) => `\\${character}`);
+}
+
 function newId(): string {
     return crypto.randomBytes(9).toString("base64url");
 }

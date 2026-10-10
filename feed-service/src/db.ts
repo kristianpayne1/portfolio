@@ -31,6 +31,20 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS entries_created_at ON entries (created_at);
 `);
 
+// Media embedded in a post's Markdown (added in the compose page). Each file
+// starts as a draft and is linked to its post when the post is published.
+// Unlinked drafts are deleted by the cleanup job.
+db.exec(`
+    CREATE TABLE IF NOT EXISTS media (
+        id         TEXT PRIMARY KEY,
+        file_name  TEXT NOT NULL,
+        folder     TEXT NOT NULL,  -- "drafts", "public" or "private"
+        entry_id   TEXT,           -- null until its post is published
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS media_entry_id ON media (entry_id);
+`);
+
 // Migration: "title" was added after the first release.
 const columns = db.prepare("PRAGMA table_info(entries)").all() as {
     name: string;
@@ -99,12 +113,92 @@ export function listRecentEntries(limit: number): Entry[] {
     return rows.map(fromRow);
 }
 
+// One public entry, or null if it does not exist or is private.
+export function findPublicEntry(id: string): Entry | null {
+    const row = findStatement.get(id) as unknown as EntryRow | undefined;
+    if (!row || row.private === 1) return null;
+    return fromRow(row);
+}
+
 // Removes an entry and returns it, or null if it did not exist.
 export function deleteEntry(id: string): Entry | null {
     const row = findStatement.get(id) as unknown as EntryRow | undefined;
     if (!row) return null;
     deleteStatement.run(id);
     return fromRow(row);
+}
+
+// ---- Embedded media ----
+
+export type MediaFolder = "drafts" | "public" | "private";
+
+export type Media = {
+    id: string;
+    file_name: string;
+    folder: MediaFolder;
+    entry_id: string | null;
+    created_at: string;
+};
+
+const insertMediaStatement = db.prepare(`
+    INSERT INTO media (id, file_name, folder, entry_id, created_at)
+    VALUES (?, ?, 'drafts', NULL, ?)
+`);
+const findDraftMediaStatement = db.prepare(
+    "SELECT * FROM media WHERE id = ? AND entry_id IS NULL"
+);
+const publishMediaStatement = db.prepare(
+    "UPDATE media SET entry_id = ?, folder = ? WHERE id = ?"
+);
+const mediaForEntryStatement = db.prepare(
+    "SELECT * FROM media WHERE entry_id = ?"
+);
+const deleteMediaStatement = db.prepare("DELETE FROM media WHERE id = ?");
+
+// Unused media: never published, or its post never made it into the feed
+// (for example the post's own upload failed to process).
+const unusedMediaStatement = db.prepare(`
+    SELECT * FROM media
+    WHERE created_at < ?
+      AND (entry_id IS NULL OR entry_id NOT IN (SELECT id FROM entries))
+`);
+
+export function insertDraftMedia(id: string, fileName: string): void {
+    insertMediaStatement.run(id, fileName, new Date().toISOString());
+}
+
+export function findDraftMedia(id: string): Media | null {
+    const row = findDraftMediaStatement.get(id) as unknown as Media | undefined;
+    return row ?? null;
+}
+
+export function markMediaPublished(
+    id: string,
+    entryId: string,
+    folder: MediaFolder
+): void {
+    publishMediaStatement.run(entryId, folder, id);
+}
+
+export function listMediaForEntry(entryId: string): Media[] {
+    return mediaForEntryStatement.all(entryId) as unknown as Media[];
+}
+
+export function listUnusedMedia(createdBefore: string): Media[] {
+    return unusedMediaStatement.all(createdBefore) as unknown as Media[];
+}
+
+const trackedFileStatement = db.prepare(
+    "SELECT 1 FROM media WHERE file_name = ?"
+);
+
+// Whether a file in the media folders belongs to a row in the media table.
+export function isTrackedMedia(fileName: string): boolean {
+    return trackedFileStatement.get(fileName) !== undefined;
+}
+
+export function deleteMediaRow(id: string): void {
+    deleteMediaStatement.run(id);
 }
 
 function fromRow(row: EntryRow): Entry {

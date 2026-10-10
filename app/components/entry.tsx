@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PostBody from "./post-body";
 
 // One post in the feed. Used for the first page (rendered on the server)
@@ -60,9 +61,12 @@ function EntryMedia({ entry }: { entry: Entry }) {
 export default function EntryArticle({ entry }: { entry: Entry }) {
     return (
         <article>
-            <time dateTime={entry.created_at}>
-                {formatDate(entry.created_at)}
-            </time>
+            {/* The date links to the post's own page. */}
+            <Link href={`/p/${entry.id}`} className="permalink">
+                <time dateTime={entry.created_at}>
+                    {formatDate(entry.created_at)}
+                </time>
+            </Link>
             {entry.title && <h2>{entry.title}</h2>}
             <EntryMedia entry={entry} />
             {entry.caption && <PostBody markdown={entry.caption} />}

@@ -27,6 +27,8 @@ const feed = start("feed", "npm", ["run", "dev"], {
         // real data on the home lab.
         DATA_DIR: "./data-local",
         PUBLIC_URL: "http://localhost:8080",
+        // So the compose page links to the local site, not the live one.
+        SITE_URL: "http://localhost:3000",
         // Only reachable from this machine, not the rest of the network.
         UPLOAD_HOST: "127.0.0.1",
         PUBLIC_HOST: "127.0.0.1",

@@ -29,6 +29,19 @@ export type Job = {
 // Jobs run one at a time so the CPU is not swamped by parallel transcodes.
 let queue: Promise<void> = Promise.resolve();
 
+// Runs any task in the same one-at-a-time queue and resolves with its
+// result. Used for media added in the compose page, which is processed
+// while the browser waits.
+export function runInQueue<T>(task: () => Promise<T>): Promise<T> {
+    const result = queue.then(task);
+    // Keep the queue going even if this task fails.
+    queue = result.then(
+        () => {},
+        () => {}
+    );
+    return result;
+}
+
 export async function enqueueJob(job: Job): Promise<void> {
     await fs.writeFile(jobFilePath(job.id), JSON.stringify(job, null, 4));
     addToQueue(job);
@@ -51,7 +64,7 @@ export function waitForQueue(): Promise<void> {
 }
 
 function addToQueue(job: Job) {
-    queue = queue.then(() => runJob(job));
+    runInQueue(() => runJob(job));
 }
 
 async function runJob(job: Job): Promise<void> {

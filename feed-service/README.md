@@ -124,10 +124,15 @@ docker compose up -d --build
 To retry, move both files back into `data/incoming/` and restart with
 `docker compose restart feed`.
 
+**Cleanup** runs at startup and every hour, and logs what it removes. It deletes media
+added in the compose page but never published (after 24 hours), raw uploads left behind by
+a crash (after 24 hours) and failed uploads (after 7 days). Change these with the settings
+below.
+
 **Back up** by copying the whole `data/` folder. It holds the database and every media file.
 
 **Deleting a post:** use the Delete button on the compose page. It removes the entry and
-its file. Cloudflare may still have a cached copy of the media file, so for anything
+all of its files, including media embedded in the text. Cloudflare may still have a cached copy of the media file, so for anything
 sensitive also purge its URL in Cloudflare (Caching > Configuration > Custom Purge).
 
 ## Settings
@@ -141,15 +146,44 @@ Set in `docker-compose.yml` (secrets in `.env`):
 | `PUBLIC_URL`    | `https://media.kristianpayne.dev` | Used to build `media_url` in `/entries`    |
 | `MAX_UPLOAD_MB` | `1024`                            | Largest accepted file                      |
 | `VIDEO_ENCODER` | `software`                        | `software` (libx264). `vaapi` is a placeholder, see `videoEncoderArgs()` in `src/media.ts` |
+| `SITE_URL`      | `https://kristianpayne.dev`       | The feed website, linked from the compose page |
+| `UNUSED_MEDIA_HOURS` | `24`                         | Media added in the compose page but never published is deleted after this |
+| `FAILED_UPLOAD_DAYS` | `7`                          | Uploads that failed to process are kept this long for a manual retry |
 
 ## Compose page
 
 Open `https://hp-elitedesk.tail90c0ce.ts.net/` in any browser on a device connected to
 Tailscale. It asks for the upload token once and remembers it in that browser.
 
-- Write a post with an optional title, a Markdown body, an optional file, and a private toggle.
-- Shows upload progress for big files.
+- Write a post with an optional title, a Markdown body and a private toggle.
 - Lists your 50 most recent posts, including private ones, each with a Delete button.
+  Public posts link to their own page on the site; **View feed** opens the feed.
+- ⌘ + Enter (Ctrl + Enter) posts.
+
+**Media in the text.** Use **Add media**, or drop or paste files into the text box. Add as
+many photos, videos and audio files as you like. Each one uploads and processes straight
+away, then a line like this appears where your cursor was:
+
+```
+![IMG_1234](media/AbC123xyz_-9.webp)
+```
+
+The text between the `[ ]` is the caption shown under the media. It starts as the file's
+name without its extension; edit it, or delete it to show no caption.
+
+Shortcuts for captions and links:
+
+- Highlight some text, then add media: the media replaces the text, and the text becomes
+  its caption. With several files, the first one gets it.
+- Highlight some text, then paste a web address: it becomes a link, `[text](https://...)`. Move or delete the line like
+any other text. Post stays disabled until every file is ready, so a post never goes out
+with broken media.
+
+Files you add but never publish wait in `data/media/drafts/` (never served) and are
+deleted after 24 hours. When you publish, a post's files move to the public folder, or the
+private one for a private post.
+
+The iOS Shortcut still attaches one photo, video or voice memo to a post, as before.
 
 The body supports Markdown: `**bold**`, `*italic*`, `[links](https://example.com)`,
 bare URLs, lists, quotes and code. Single line breaks are kept. Raw HTML is shown as
@@ -172,7 +206,11 @@ Responds `201` for text posts and `202` for media (still processing). Both inclu
 
 **`GET /api/entries`** (port 8081, needs the token): the 50 newest posts, including private ones.
 
-**`DELETE /api/entries/<id>`** (port 8081, needs the token): deletes a post and its media file.
+**`DELETE /api/entries/<id>`** (port 8081, needs the token): deletes a post and all its media.
+
+**`POST /api/media`** (port 8081, needs the token): one multipart `file` to embed in a
+post's Markdown. Waits until it is processed, then returns `{ id, type, markdown }`, where
+`markdown` is the line to insert. `/entries` turns `media/<file>` references into full URLs.
 
 **`GET /entries?limit=20`** (port 8080, public): the newest public posts.
 
@@ -199,7 +237,11 @@ a new post never causes duplicates or gaps for someone scrolling. The feed page 
 this for endless scrolling, straight from the browser, so the response allows any origin
 (CORS).
 
-`limit` is capped at 50. `type` is `video`, `image`, `audio` or `text` (`media_url` is `null` for text). `title` and `caption` can each be `null`.
+`limit` is capped at 50.
+
+**`GET /entries/<id>`** (port 8080, public): one post, in the same shape as an item in
+`entries`. `404` if it does not exist or is private. The site uses it for each post's own
+page at `kristianpayne.dev/p/<id>`. `type` is `video`, `image`, `audio` or `text` (`media_url` is `null` for text). `title` and `caption` can each be `null`.
 
 **`GET /media/<file>`**: processed files, cached for a year (file names never change).
 Supports range requests, which iOS Safari needs to play video.

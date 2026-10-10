@@ -119,6 +119,12 @@ article + article {
     border-top: 1px dashed var(--border);
 }
 
+/* The date at the top of a post links to the post's own page. It looks
+   like the plain date until hovered. */
+a.permalink {
+    color: inherit;
+}
+
 article h2 {
     font-size: 1.2em;
     margin: 0.25em 0 0.5em;
@@ -128,6 +134,25 @@ article video,
 article img,
 article audio {
     margin: 0.75em 0;
+}
+
+/* Media embedded in a post's text, with an optional caption below. */
+.embed {
+    display: block;
+    margin: 1em 0;
+}
+
+.embed video,
+.embed img,
+.embed audio {
+    margin: 0;
+}
+
+.embed .caption {
+    display: block;
+    margin-top: 0.4em;
+    font-size: 14px;
+    color: var(--muted);
 }
 
 /* ---- Forms (compose page) ---- */

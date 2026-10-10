@@ -20,6 +20,27 @@
                 align-items: center;
                 flex-wrap: wrap;
             }
+            /* Its own line under Post, always one line tall even when empty,
+               so messages appearing and clearing never move anything. Long
+               messages are cut off with "..." and show in full on hover. */
+            #status {
+                margin: 0;
+                min-height: 1.5em;
+                line-height: 1.5em;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            /* "Recent" with the View feed link on the right. */
+            .recent-heading {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-top: 2em;
+            }
+            .recent-heading h2 {
+                margin: 0;
+            }
             /* Recent posts: date, then text, like a blog archive list. */
             ul.recent {
                 list-style: none;
@@ -57,6 +78,9 @@
             button.delete:hover {
                 text-decoration: underline;
             }
+            textarea.dragging {
+                border-color: var(--link);
+            }
             [hidden] {
                 display: none !important;
             }
@@ -84,11 +108,17 @@
                         name="caption"
                         placeholder="Write something."
                     ></textarea>
-                    <input
-                        name="file"
-                        type="file"
-                        accept="image/*,video/*,audio/*"
-                    />
+                    <div class="row">
+                        <button type="button" id="add-media">Add media</button>
+                        <!-- Hidden; opened by the Add media button. -->
+                        <input
+                            id="media-input"
+                            type="file"
+                            accept="image/*,video/*,audio/*"
+                            multiple
+                            hidden
+                        />
+                    </div>
                     <div class="row">
                         <label
                             ><input
@@ -101,11 +131,14 @@
                         <button type="submit" title="Post (⌘ + Enter)">
                             Post
                         </button>
-                        <span id="status" class="muted"></span>
                     </div>
+                    <p id="status" class="muted"></p>
                 </form>
 
-                <h2>Recent</h2>
+                <div class="recent-heading">
+                    <h2>Recent</h2>
+                    <a href="__SITE_URL__" target="_blank">View feed</a>
+                </div>
                 <ul id="recent" class="recent"></ul>
 
                 <p class="muted"><a href="#" id="forget">Forget token</a></p>
@@ -198,7 +231,14 @@
                     }
                 );
 
-                const text = document.createElement("span");
+                // Public posts link to their own page on the feed site.
+                const text = document.createElement(
+                    entry.private ? "span" : "a"
+                );
+                if (!entry.private) {
+                    text.href = `__SITE_URL__/p/${entry.id}`;
+                    text.target = "_blank";
+                }
                 text.className = "text";
                 const label = entry.title || entry.caption || `(${entry.type})`;
                 text.textContent =
@@ -219,8 +259,213 @@
                 return item;
             }
 
+            const textarea = postForm.elements.caption;
+
+            // Keep the hover text in sync with the (possibly cut off) status.
+            new MutationObserver(() => {
+                statusText.title = statusText.textContent;
+            }).observe(statusText, { childList: true, characterData: true });
+            const postButton = postForm.querySelector('button[type="submit"]');
+            const mediaInput = document.getElementById("media-input");
+
+            // ---- Embedded media ----
+            //
+            // Each file is uploaded and processed straight away. While that
+            // happens, a placeholder line sits in the text; when it is done,
+            // the placeholder becomes "![](media/<file>)". Post stays disabled
+            // until every file is ready, so a post never has broken media.
+
+            let pendingUploads = 0;
+            let uploadCounter = 0;
+            // Problems are collected and shown once every file has finished,
+            // so a quick failure is not hidden by later progress messages.
+            let uploadErrors = [];
+
+            function refreshPostButton() {
+                postButton.disabled = pendingUploads > 0;
+                if (pendingUploads > 0) {
+                    const files = pendingUploads === 1 ? "file" : "files";
+                    statusText.textContent = `Adding ${pendingUploads} ${files}...`;
+                }
+            }
+
+            document
+                .getElementById("add-media")
+                .addEventListener("click", () => mediaInput.click());
+
+            mediaInput.addEventListener("change", () => {
+                addMedia(mediaInput.files);
+                mediaInput.value = ""; // so the same file can be picked again
+            });
+
+            textarea.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                textarea.classList.add("dragging");
+            });
+            textarea.addEventListener("dragleave", () => {
+                textarea.classList.remove("dragging");
+            });
+            textarea.addEventListener("drop", (event) => {
+                textarea.classList.remove("dragging");
+                if (event.dataTransfer.files.length === 0) return;
+                event.preventDefault();
+                addMedia(event.dataTransfer.files);
+            });
+            textarea.addEventListener("paste", (event) => {
+                if (event.clipboardData.files.length > 0) {
+                    event.preventDefault();
+                    addMedia(event.clipboardData.files);
+                    return;
+                }
+                // Pasting a web address over highlighted text makes a link:
+                // [highlighted text](https://...)
+                const pasted = event.clipboardData.getData("text").trim();
+                const selected = selectedText();
+                if (selected && /^https?:\/\/\S+$/.test(pasted)) {
+                    event.preventDefault();
+                    insertAtCursor(`[${escapeCaption(selected)}](${pasted})`);
+                }
+            });
+
+            // If text is highlighted when media is added, the media replaces
+            // it and the highlighted text becomes its caption (for the first
+            // file; any others get their file name).
+            function addMedia(fileList) {
+                const caption = selectedText();
+                [...fileList].forEach((file, index) =>
+                    uploadMedia(file, index === 0 ? caption : "")
+                );
+            }
+
+            function selectedText() {
+                const { selectionStart, selectionEnd, value } = textarea;
+                return value.slice(selectionStart, selectionEnd).trim();
+            }
+
+            // A caption sits inside [ ], so it must be one line with any
+            // brackets escaped, or it would break the Markdown.
+            function escapeCaption(text) {
+                return text
+                    .replace(/\s+/g, " ")
+                    .replace(/[\\[\]]/g, (character) => `\\${character}`);
+            }
+
+            // Inserts text where the cursor is (or replaces the selection).
+            function insertAtCursor(text) {
+                const { selectionStart, selectionEnd } = textarea;
+                textarea.setRangeText(
+                    text,
+                    selectionStart,
+                    selectionEnd,
+                    "end"
+                );
+                textarea.focus();
+            }
+
+            // Swaps a placeholder for its final text, keeping the cursor
+            // where it was. If the placeholder was edited away, the text is
+            // added at the end instead.
+            function replacePlaceholder(placeholder, text) {
+                const index = textarea.value.indexOf(placeholder);
+                if (index === -1) {
+                    if (text) textarea.value += `\n\n${text}`;
+                    return;
+                }
+                const { selectionStart, selectionEnd } = textarea;
+                const shift = text.length - placeholder.length;
+                const moved = (position) =>
+                    position > index ? position + shift : position;
+                textarea.value =
+                    textarea.value.slice(0, index) +
+                    text +
+                    textarea.value.slice(index + placeholder.length);
+                textarea.setSelectionRange(
+                    moved(selectionStart),
+                    moved(selectionEnd)
+                );
+            }
+
             // Uses XMLHttpRequest instead of fetch to show upload progress,
             // which matters for videos.
+            function uploadMedia(file, caption) {
+                uploadCounter += 1;
+                const placeholder = `![Uploading ${file.name} (${uploadCounter})...]()`;
+                // Replacing highlighted text keeps it in place, inline.
+                // Otherwise the media goes on its own line at the cursor.
+                insertAtCursor(caption ? placeholder : `\n${placeholder}\n`);
+                pendingUploads += 1;
+                refreshPostButton();
+
+                const request = new XMLHttpRequest();
+                request.open("POST", "/api/media");
+                request.setRequestHeader(
+                    "Authorization",
+                    `Bearer ${getToken()}`
+                );
+
+                request.upload.addEventListener("progress", (progress) => {
+                    if (!progress.lengthComputable) return;
+                    const percent = Math.round(
+                        (progress.loaded / progress.total) * 100
+                    );
+                    // Short, so it fits beside Post even on a phone.
+                    statusText.textContent =
+                        percent < 100
+                            ? `Uploading ${percent}%`
+                            : "Processing...";
+                });
+
+                const finish = (text, error) => {
+                    // On failure, put back any highlighted text it replaced.
+                    replacePlaceholder(placeholder, text || caption);
+                    if (error) uploadErrors.push(error);
+                    pendingUploads -= 1;
+                    refreshPostButton();
+                    if (pendingUploads === 0) {
+                        statusText.textContent = uploadErrors.join("; ");
+                        uploadErrors = [];
+                    }
+                };
+
+                request.addEventListener("load", () => {
+                    if (request.status === 401) {
+                        finish("");
+                        return showTokenForm();
+                    }
+                    let body = {};
+                    try {
+                        body = JSON.parse(request.responseText);
+                    } catch {}
+                    if (request.status >= 400 || !body.markdown) {
+                        // Reason first, so it stays readable if the
+                        // message is cut off on a narrow screen.
+                        const reason =
+                            request.status === 415
+                                ? "Unsupported file type"
+                                : request.status === 413
+                                  ? "File too large"
+                                  : "Could not process";
+                        finish("", `${reason}: ${file.name}`);
+                        return;
+                    }
+                    finish(
+                        caption
+                            ? `![${escapeCaption(caption)}](${body.src})`
+                            : body.markdown
+                    );
+                });
+
+                request.addEventListener("error", () => {
+                    finish("", `Server unreachable: ${file.name}`);
+                });
+
+                const form = new FormData();
+                form.append("file", file);
+                request.send(form);
+            }
+
+            // ---- Posting ----
+
             // Command + Enter (Ctrl + Enter on Windows/Linux) posts from
             // anywhere in the form. requestSubmit runs the submit handler
             // below, the same as clicking Post.
@@ -232,58 +477,36 @@
                     return;
                 }
                 event.preventDefault();
-                const button = postForm.querySelector('button[type="submit"]');
-                if (!button.disabled) postForm.requestSubmit();
+                if (!postButton.disabled) postForm.requestSubmit();
             });
 
-            postForm.addEventListener("submit", (event) => {
+            postForm.addEventListener("submit", async (event) => {
                 event.preventDefault();
-                const button = postForm.querySelector("button");
-                button.disabled = true;
+                if (pendingUploads > 0) return;
+                postButton.disabled = true;
+                statusText.textContent = "Posting...";
 
-                const request = new XMLHttpRequest();
-                request.open("POST", "/upload");
-                request.setRequestHeader(
-                    "Authorization",
-                    `Bearer ${getToken()}`
-                );
-
-                request.upload.addEventListener("progress", (progress) => {
-                    if (progress.lengthComputable) {
-                        const percent = Math.round(
-                            (progress.loaded / progress.total) * 100
-                        );
-                        statusText.textContent = `Uploading ${percent}%`;
-                    }
-                });
-
-                request.addEventListener("load", () => {
-                    button.disabled = false;
-                    if (request.status === 401) return showTokenForm();
-
-                    let body = {};
-                    try {
-                        body = JSON.parse(request.responseText);
-                    } catch {}
-
-                    if (request.status >= 400) {
+                try {
+                    const response = await fetch("/upload", {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${getToken()}` },
+                        body: new FormData(postForm),
+                    });
+                    if (response.status === 401) return showTokenForm();
+                    const body = await response.json().catch(() => ({}));
+                    if (!response.ok) {
                         statusText.textContent =
-                            body.error ||
-                            body.message ||
-                            "Something went wrong";
+                            body.error || "Something went wrong";
                         return;
                     }
                     statusText.textContent = body.message;
                     postForm.reset();
                     loadRecent();
-                });
-
-                request.addEventListener("error", () => {
-                    button.disabled = false;
+                } catch {
                     statusText.textContent = "Could not reach the server";
-                });
-
-                request.send(new FormData(postForm));
+                } finally {
+                    postButton.disabled = pendingUploads > 0;
+                }
             });
 
             if (getToken()) showApp();
