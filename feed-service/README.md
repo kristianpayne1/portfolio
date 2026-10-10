@@ -174,12 +174,11 @@ Responds `201` for text posts and `202` for media (still processing). Both inclu
 
 **`DELETE /api/entries/<id>`** (port 8081, needs the token): deletes a post and its media file.
 
-**`GET /entries?page=1&limit=20`** (port 8080, public)
+**`GET /entries?limit=20`** (port 8080, public): the newest public posts.
 
 ```json
 {
-    "page": 1,
-    "hasMore": false,
+    "nextCursor": "2026-10-09T22:59:12.207Z",
     "entries": [
         {
             "id": "BtvDvOsxvMHB",
@@ -192,6 +191,13 @@ Responds `201` for text posts and `202` for media (still processing). Both inclu
     ]
 }
 ```
+
+For the next (older) page, pass `nextCursor` back as `before`:
+`GET /entries?limit=20&before=2026-10-09T22:59:12.207Z`. `nextCursor` is `null` when
+there is nothing older. Paging by "older than this post" instead of page numbers means
+a new post never causes duplicates or gaps for someone scrolling. The feed page uses
+this for endless scrolling, straight from the browser, so the response allows any origin
+(CORS).
 
 `limit` is capped at 50. `type` is `video`, `image`, `audio` or `text` (`media_url` is `null` for text). `title` and `caption` can each be `null`.
 

@@ -98,13 +98,14 @@
                             />
                             Private</label
                         >
-                        <button type="submit">Post</button>
+                        <button type="submit" title="Post (⌘ + Enter)">
+                            Post
+                        </button>
                         <span id="status" class="muted"></span>
                     </div>
                 </form>
 
                 <h2>Recent</h2>
-                <p class="muted">Media appears here once processed.</p>
                 <ul id="recent" class="recent"></ul>
 
                 <p class="muted"><a href="#" id="forget">Forget token</a></p>
@@ -220,6 +221,21 @@
 
             // Uses XMLHttpRequest instead of fetch to show upload progress,
             // which matters for videos.
+            // Command + Enter (Ctrl + Enter on Windows/Linux) posts from
+            // anywhere in the form. requestSubmit runs the submit handler
+            // below, the same as clicking Post.
+            postForm.addEventListener("keydown", (event) => {
+                if (
+                    event.key !== "Enter" ||
+                    !(event.metaKey || event.ctrlKey)
+                ) {
+                    return;
+                }
+                event.preventDefault();
+                const button = postForm.querySelector('button[type="submit"]');
+                if (!button.disabled) postForm.requestSubmit();
+            });
+
             postForm.addEventListener("submit", (event) => {
                 event.preventDefault();
                 const button = postForm.querySelector("button");

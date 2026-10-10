@@ -10,7 +10,7 @@
             ],
             "env": {
                 "UPLOAD_TOKEN": "dev",
-                "DATA_DIR": "/private/tmp/claude-501/-Users-kristian-Projects-portfolio/81276946-00df-45a6-be94-12e80fdb8e97/scratchpad/themepreview",
+                "DATA_DIR": "/private/tmp/claude-501/-Users-kristian-Projects-portfolio/81276946-00df-45a6-be94-12e80fdb8e97/scratchpad/keytest",
                 "UPLOAD_HOST": "127.0.0.1",
                 "PUBLIC_HOST": "127.0.0.1",
                 "UPLOAD_PORT": "8091",
@@ -18,20 +18,6 @@
                 "PUBLIC_URL": "http://localhost:8090"
             },
             "port": 8091
-        },
-        {
-            "name": "site-preview",
-            "runtimeExecutable": "npx",
-            "runtimeArgs": [
-                "next",
-                "dev",
-                "-p",
-                "3128"
-            ],
-            "env": {
-                "FEED_API_URL": "http://localhost:8090"
-            },
-            "port": 3128
         }
     ]
 }

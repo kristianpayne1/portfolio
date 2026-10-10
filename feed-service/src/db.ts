@@ -44,11 +44,15 @@ const insertStatement = db.prepare(`
     VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 
+// Pages are fetched by "everything older than this created_at" rather than
+// by page number, so a new post never shifts later pages (no duplicates or
+// gaps while someone is scrolling). Only one person posts, so two entries
+// never share the same millisecond.
 const publicPageStatement = db.prepare(`
     SELECT * FROM entries
-    WHERE private = 0
-    ORDER BY created_at DESC, id DESC
-    LIMIT ? OFFSET ?
+    WHERE private = 0 AND created_at < ?
+    ORDER BY created_at DESC
+    LIMIT ?
 `);
 
 const recentStatement = db.prepare(`
@@ -72,16 +76,17 @@ export function insertEntry(entry: Entry): void {
     );
 }
 
-// Returns one page of public entries, newest first.
-// We ask for one extra row so we know whether another page exists.
+// Returns public entries older than `before` (or the newest ones when it is
+// null), newest first. We ask for one extra row so we know whether there
+// are more after this page.
 export function listPublicEntries(
-    page: number,
+    before: string | null,
     pageSize: number
 ): { entries: Entry[]; hasMore: boolean } {
-    const offset = (page - 1) * pageSize;
+    // "9999" sorts after every real ISO date, so it means "from the newest".
     const rows = publicPageStatement.all(
-        pageSize + 1,
-        offset
+        before ?? "9999",
+        pageSize + 1
     ) as unknown as EntryRow[];
 
     const entries = rows.slice(0, pageSize).map(fromRow);

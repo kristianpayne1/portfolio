@@ -1,7 +1,8 @@
 // The public, read-only server. The Cloudflare Tunnel points here.
 // It has no upload route at all, so uploads cannot leak through the tunnel.
 //
-// GET /entries?page=1&limit=20   public entries, newest first
+// GET /entries?limit=20          public entries, newest first
+// GET /entries?before=<cursor>   the next (older) page, using nextCursor
 // GET /media/<file>              processed media files
 // GET /health                    for checking the service is up
 
@@ -25,18 +26,24 @@ export async function buildPublicServer() {
         maxAge: "365d",
     });
 
-    app.get<{ Querystring: { page?: string; limit?: string } }>(
+    app.get<{ Querystring: { before?: string; limit?: string } }>(
         "/entries",
         async (request, reply) => {
-            const page = clamp(Number(request.query.page) || 1, 1, 10_000);
+            const before = request.query.before || null;
             const limit = clamp(Number(request.query.limit) || 20, 1, 50);
 
-            const { entries, hasMore } = listPublicEntries(page, limit);
+            const { entries, hasMore } = listPublicEntries(before, limit);
 
+            // The feed page loads older posts straight from the browser
+            // while scrolling, so allow any site to read this public data.
+            reply.header("Access-Control-Allow-Origin", "*");
             reply.header("Cache-Control", "public, max-age=60");
             return {
-                page,
-                hasMore,
+                // Pass this back as ?before= to get the next page.
+                // null means there is nothing older.
+                nextCursor: hasMore
+                    ? entries[entries.length - 1].created_at
+                    : null,
                 entries: entries.map((entry) => ({
                     id: entry.id,
                     created_at: entry.created_at,
