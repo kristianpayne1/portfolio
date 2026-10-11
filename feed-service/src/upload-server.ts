@@ -12,6 +12,7 @@
 //                           (multipart "file"). Waits until it is processed,
 //                           then returns the Markdown to insert.
 // GET    /api/entries       recent posts, including private ones
+// PATCH  /api/entries/:id   edit a post's title, text or privacy (JSON body)
 // DELETE /api/entries/:id   delete a post and all of its media
 //
 // Everything except the compose page needs the bearer token.
@@ -25,11 +26,17 @@ import multipart from "@fastify/multipart";
 import { config } from "./config.ts";
 import {
     deleteEntry,
+    findEntry,
     insertDraftMedia,
     insertEntry,
     listRecentEntries,
+    updateEntry,
 } from "./db.ts";
-import { deleteEmbeddedMedia, publishEmbeddedMedia } from "./embedded-media.ts";
+import {
+    deleteEmbeddedMedia,
+    publishEmbeddedMedia,
+    syncEmbeddedMedia,
+} from "./embedded-media.ts";
 import { enqueueJob, runInQueue } from "./jobs.ts";
 import { detectMediaType, outputExtension, processMedia } from "./media.ts";
 
@@ -66,6 +73,60 @@ export async function buildUploadServer() {
     app.get("/api/entries", { onRequest: requireToken }, async () => {
         return { entries: listRecentEntries(50) };
     });
+
+    app.patch<{
+        Params: { id: string };
+        Body: { title?: string; caption?: string; private?: boolean };
+    }>(
+        "/api/entries/:id",
+        { onRequest: requireToken },
+        async (request, reply) => {
+            const entry = findEntry(request.params.id);
+            if (!entry) {
+                return reply.code(404).send({ error: "No such post" });
+            }
+
+            const title = request.body?.title?.trim() || null;
+            const caption = request.body?.caption?.trim() || null;
+            const isPrivate = request.body?.private === true;
+
+            if (title && title.length > config.maxTitleLength) {
+                return reply.code(400).send({
+                    error: `Title is longer than ${config.maxTitleLength} characters`,
+                });
+            }
+            if (caption && caption.length > config.maxCaptionLength) {
+                return reply.code(400).send({
+                    error: `Post is longer than ${config.maxCaptionLength} characters`,
+                });
+            }
+            // A text post with nothing left in it would be an empty post.
+            if (entry.type === "text" && !title && !caption) {
+                return reply
+                    .code(400)
+                    .send({ error: "A text post needs a title or some text" });
+            }
+
+            // A post's attached file (from the Shortcut) moves too if it
+            // switched between public and private.
+            if (entry.media_path && entry.private !== isPrivate) {
+                const from = entry.private
+                    ? config.paths.privateMedia
+                    : config.paths.publicMedia;
+                const to = isPrivate
+                    ? config.paths.privateMedia
+                    : config.paths.publicMedia;
+                fs.renameSync(
+                    path.join(from, entry.media_path),
+                    path.join(to, entry.media_path)
+                );
+            }
+
+            updateEntry(entry.id, { title, caption, private: isPrivate });
+            await syncEmbeddedMedia(caption, entry.id, isPrivate);
+            return { id: entry.id, message: "Saved" };
+        }
+    );
 
     app.delete<{ Params: { id: string } }>(
         "/api/entries/:id",

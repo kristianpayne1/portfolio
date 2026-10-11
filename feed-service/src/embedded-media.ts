@@ -54,6 +54,37 @@ export async function publishEmbeddedMedia(
     }
 }
 
+// After a post is edited, makes its files match its new text and visibility:
+//   - newly embedded drafts are published
+//   - files no longer mentioned in the text are deleted (saves disk space)
+//   - if the post switched between public and private, its files move too
+export async function syncEmbeddedMedia(
+    markdown: string | null,
+    entryId: string,
+    isPrivate: boolean
+): Promise<void> {
+    await publishEmbeddedMedia(markdown, entryId, isPrivate);
+
+    const mentioned = new Set(
+        [...(markdown ?? "").matchAll(MEDIA_REFERENCE)].map((match) => match[1])
+    );
+    const target: MediaFolder = isPrivate ? "private" : "public";
+
+    for (const media of listMediaForEntry(entryId)) {
+        const current = path.join(folderPath(media.folder), media.file_name);
+        if (!mentioned.has(media.id)) {
+            await fs.rm(current, { force: true });
+            deleteMediaRow(media.id);
+        } else if (media.folder !== target) {
+            await fs.rename(
+                current,
+                path.join(folderPath(target), media.file_name)
+            );
+            markMediaPublished(media.id, entryId, target);
+        }
+    }
+}
+
 // Deletes the files embedded in a post. Called when the post is deleted.
 export async function deleteEmbeddedMedia(entryId: string): Promise<void> {
     for (const media of listMediaForEntry(entryId)) {

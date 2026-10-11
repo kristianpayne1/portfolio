@@ -113,6 +113,30 @@ export function listRecentEntries(limit: number): Entry[] {
     return rows.map(fromRow);
 }
 
+const findAnyStatement = db.prepare("SELECT * FROM entries WHERE id = ?");
+const updateStatement = db.prepare(
+    "UPDATE entries SET title = ?, caption = ?, private = ? WHERE id = ?"
+);
+
+// Any entry, public or private. Only for the upload server.
+export function findEntry(id: string): Entry | null {
+    const row = findAnyStatement.get(id) as unknown as EntryRow | undefined;
+    return row ? fromRow(row) : null;
+}
+
+// Changes a post's text and visibility. Its date, type and media stay.
+export function updateEntry(
+    id: string,
+    changes: { title: string | null; caption: string | null; private: boolean }
+): void {
+    updateStatement.run(
+        changes.title,
+        changes.caption,
+        changes.private ? 1 : 0,
+        id
+    );
+}
+
 // One public entry, or null if it does not exist or is private.
 export function findPublicEntry(id: string): Entry | null {
     const row = findStatement.get(id) as unknown as EntryRow | undefined;

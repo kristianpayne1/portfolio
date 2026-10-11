@@ -69,14 +69,23 @@
                 white-space: nowrap;
             }
             /* Delete looks like a quiet link, not a big button. */
+            /* Edit and Delete look like quiet links, not big buttons. */
+            button.edit,
             button.delete {
                 border: none;
                 padding: 0;
                 font-size: 14px;
+                color: var(--link);
+            }
+            button.delete {
                 color: var(--danger);
             }
+            button.edit:hover,
             button.delete:hover {
                 text-decoration: underline;
+            }
+            #editing {
+                margin: 0 0 12px;
             }
             textarea.dragging {
                 border-color: var(--link);
@@ -97,6 +106,11 @@
             </form>
 
             <div id="app" hidden>
+                <!-- Shown while an existing post is loaded into the form. -->
+                <p id="editing" class="muted" hidden>
+                    Editing <span id="editing-what"></span>.
+                    <a href="#" id="cancel-edit">Cancel</a>
+                </p>
                 <form id="post-form">
                     <input
                         name="title"
@@ -252,10 +266,18 @@
                 remove.addEventListener("click", async () => {
                     if (!confirm(`Delete "${label.slice(0, 60)}"?`)) return;
                     await api("DELETE", `/api/entries/${entry.id}`);
+                    if (editingId === entry.id) stopEditing();
                     loadRecent();
                 });
 
-                item.append(date, text, remove);
+                const edit = document.createElement("button");
+                edit.className = "edit";
+                edit.textContent = "Edit";
+                edit.addEventListener("click", () =>
+                    startEditing(entry, date.textContent)
+                );
+
+                item.append(date, text, edit, remove);
                 return item;
             }
 
@@ -480,18 +502,72 @@
                 if (!postButton.disabled) postForm.requestSubmit();
             });
 
+            // ---- Editing ----
+            //
+            // Edit loads a post into the same form. Post becomes Save, and
+            // saving keeps the post's date and place in the feed.
+
+            let editingId = null;
+            const editingBanner = document.getElementById("editing");
+
+            function startEditing(entry, dateText) {
+                editingId = entry.id;
+                postForm.elements.title.value = entry.title ?? "";
+                textarea.value = entry.caption ?? "";
+                postForm.elements.private.checked = entry.private;
+                document.getElementById("editing-what").textContent =
+                    `the post from ${dateText}`;
+                editingBanner.hidden = false;
+                postButton.textContent = "Save";
+                statusText.textContent = "";
+                window.scrollTo({ top: 0 });
+                textarea.focus();
+            }
+
+            function stopEditing() {
+                editingId = null;
+                editingBanner.hidden = true;
+                postButton.textContent = "Post";
+                postForm.reset();
+            }
+
+            document
+                .getElementById("cancel-edit")
+                .addEventListener("click", (event) => {
+                    event.preventDefault();
+                    stopEditing();
+                });
+
+            // Saving an edit sends JSON to PATCH /api/entries/<id>; a new
+            // post sends the form to POST /upload.
+            function sendPost() {
+                const headers = { Authorization: `Bearer ${getToken()}` };
+                if (!editingId) {
+                    return fetch("/upload", {
+                        method: "POST",
+                        headers,
+                        body: new FormData(postForm),
+                    });
+                }
+                return fetch(`/api/entries/${editingId}`, {
+                    method: "PATCH",
+                    headers: { ...headers, "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        title: postForm.elements.title.value,
+                        caption: textarea.value,
+                        private: postForm.elements.private.checked,
+                    }),
+                });
+            }
+
             postForm.addEventListener("submit", async (event) => {
                 event.preventDefault();
                 if (pendingUploads > 0) return;
                 postButton.disabled = true;
-                statusText.textContent = "Posting...";
+                statusText.textContent = editingId ? "Saving..." : "Posting...";
 
                 try {
-                    const response = await fetch("/upload", {
-                        method: "POST",
-                        headers: { Authorization: `Bearer ${getToken()}` },
-                        body: new FormData(postForm),
-                    });
+                    const response = await sendPost();
                     if (response.status === 401) return showTokenForm();
                     const body = await response.json().catch(() => ({}));
                     if (!response.ok) {
@@ -500,7 +576,8 @@
                         return;
                     }
                     statusText.textContent = body.message;
-                    postForm.reset();
+                    if (editingId) stopEditing();
+                    else postForm.reset();
                     loadRecent();
                 } catch {
                     statusText.textContent = "Could not reach the server";

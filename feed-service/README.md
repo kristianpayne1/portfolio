@@ -156,7 +156,10 @@ Open `https://hp-elitedesk.tail90c0ce.ts.net/` in any browser on a device connec
 Tailscale. It asks for the upload token once and remembers it in that browser.
 
 - Write a post with an optional title, a Markdown body and a private toggle.
-- Lists your 50 most recent posts, including private ones, each with a Delete button.
+- Lists your 50 most recent posts, including private ones, each with Edit and Delete.
+  Edit loads the post into the form (Post becomes Save); saving keeps its date and place
+  in the feed. Media you remove from the text while editing is deleted, and switching
+  Private moves the post's files between the public and private folders.
   Public posts link to their own page on the site; **View feed** opens the feed.
 - ⌘ + Enter (Ctrl + Enter) posts.
 
@@ -205,6 +208,9 @@ Responds `201` for text posts and `202` for media (still processing). Both inclu
 `message` the Shortcut shows as a notification.
 
 **`GET /api/entries`** (port 8081, needs the token): the 50 newest posts, including private ones.
+
+**`PATCH /api/entries/<id>`** (port 8081, needs the token): edits a post. JSON body
+`{ "title", "caption", "private" }`. Its date, type and attached file stay the same.
 
 **`DELETE /api/entries/<id>`** (port 8081, needs the token): deletes a post and all its media.
 
