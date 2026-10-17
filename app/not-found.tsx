@@ -5,7 +5,7 @@ import Link from "next/link";
 export default function NotFound() {
     return (
         <>
-            <p>404 Not Found. There's nothing here...</p>
+            <p>404 Not Found. There&apos;s nothing here...</p>
             <p>
                 <Link href="/">← All posts</Link>
             </p>

@@ -2,23 +2,10 @@
     "version": "0.0.1",
     "configurations": [
         {
-            "name": "compose-preview",
-            "runtimeExecutable": "node",
-            "runtimeArgs": [
-                "--disable-warning=ExperimentalWarning",
-                "feed-service/src/main.ts"
-            ],
-            "env": {
-                "UPLOAD_TOKEN": "dev",
-                "DATA_DIR": "/private/tmp/claude-501/-Users-kristian-Projects-portfolio/81276946-00df-45a6-be94-12e80fdb8e97/scratchpad/embedui",
-                "UPLOAD_HOST": "127.0.0.1",
-                "PUBLIC_HOST": "127.0.0.1",
-                "UPLOAD_PORT": "8091",
-                "PUBLIC_PORT": "8090",
-                "PUBLIC_URL": "http://localhost:8090",
-                "SITE_URL": "http://localhost:3129"
-            },
-            "port": 8091
+            "name": "site-live-feed",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["next", "dev", "-p", "3130"],
+            "port": 3130
         }
     ]
 }
