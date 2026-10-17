@@ -17,8 +17,11 @@ await uploadServer.listen({ host: config.uploadHost, port: config.uploadPort });
 await resumeUnfinishedJobs();
 scheduleCleanup();
 
+// Shows in "docker compose logs feed", to confirm which version started.
+console.log(`Feed service started, version ${config.version}`);
+
 // On "docker stop", stop taking requests and let the current job finish.
-// Docker waits 10 seconds by default (see stop_grace_period in compose);
+// Docker waits 30 seconds (stop_grace_period in docker-compose.yml);
 // any job cut short is resumed on the next start.
 async function shutdown() {
     await uploadServer.close();
