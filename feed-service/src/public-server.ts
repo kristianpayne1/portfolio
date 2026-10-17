@@ -5,7 +5,7 @@
 // GET /entries?before=<cursor>   the next (older) page, using nextCursor
 // GET /entries/<id>              one public post (for its own page)
 // GET /media/<file>              processed media files
-// GET /health                    for checking the service is up
+// GET /health                    is the service up, and which version
 
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -63,7 +63,7 @@ export async function buildPublicServer() {
         }
     );
 
-    app.get("/health", async () => ({ ok: true }));
+    app.get("/health", async () => ({ ok: true, version: config.version }));
 
     return app;
 }

@@ -8,10 +8,16 @@
 #
 # Neither container joins the Gluetun/VPN network. Do not add
 # "network_mode: service:gluetun" or the gluetun network here.
+#
+# Updates: the feed image is built and published by GitHub Actions when
+# feed-service/ changes on main. A systemd timer on the EliteDesk pulls it and
+# restarts the container (see deploy/ and the README). To build locally
+# instead, add the override file:
+#   docker compose -f docker-compose.yml -f compose.build.yml up -d --build
 
 services:
     feed:
-        build: .
+        image: ghcr.io/kristianpayne1/feed-service:latest
         restart: unless-stopped
         environment:
             # Secrets come from the .env file next to this one.

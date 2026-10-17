@@ -1,0 +1,11 @@
+# Runs feed-update.service 2 minutes after boot, then every 5 minutes.
+
+[Unit]
+Description=Check for a new feed service image every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

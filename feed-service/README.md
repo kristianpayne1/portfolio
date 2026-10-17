@@ -75,10 +75,10 @@ mkdir data
 
 If `id -u` prints something other than 1000, also run `sudo chown 1000:1000 data`.
 
-**5. Start it**
+**5. Start it.** This downloads the published image (see "Automatic updates" below):
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 **6. Share the upload port with your tailnet.** This gives you an HTTPS address like
@@ -110,15 +110,8 @@ See the logs (shows each job being processed or failing):
 docker compose logs -f feed
 ```
 
-Update after pulling new code:
+Updates happen by themselves, see "Automatic updates" below.
 
-```bash
-git pull
-```
-
-```bash
-docker compose up -d --build
-```
 
 **If a job fails**, its raw upload and a `.json` job file are moved to `data/failed/`.
 To retry, move both files back into `data/incoming/` and restart with
@@ -134,6 +127,75 @@ below.
 **Deleting a post:** use the Delete button on the compose page. It removes the entry and
 all of its files, including media embedded in the text. Cloudflare may still have a cached copy of the media file, so for anything
 sensitive also purge its URL in Cloudflare (Caching > Configuration > Custom Purge).
+
+## Automatic updates
+
+Push to `main` and the EliteDesk updates itself within about 5 minutes. No `git pull`,
+no rebuilding.
+
+```
+push to main ──▶ GitHub Actions: typecheck, build ──▶ ghcr.io/kristianpayne1/feed-service:latest
+                                                                    │
+EliteDesk timer, every 5 min: docker compose pull ◀─────────────────┘
+                              docker compose up -d   (restarts only if the image changed)
+                              docker image prune     (deletes old versions)
+```
+
+- **GitHub side:** `.github/workflows/feed-service.yml` runs when anything in
+  `feed-service/` changes on `main` (or by hand from the Actions tab). If the typecheck or
+  the build fails, nothing is published and the EliteDesk keeps running the old version.
+  Each image is tagged `latest` and with its commit hash.
+- **EliteDesk side:** `deploy/feed-update.service` and `deploy/feed-update.timer`. The
+  EliteDesk only ever downloads. GitHub has no way into the home lab.
+- **The image is public**, like the repo. It contains only the code; `.env`, `data/` and
+  all media stay on the EliteDesk.
+
+**Install the timer** (once, on the EliteDesk):
+
+```bash
+sudo cp ~/portfolio/feed-service/deploy/feed-update.* /etc/systemd/system/
+```
+
+```bash
+sudo systemctl daemon-reload && sudo systemctl enable --now feed-update.timer
+```
+
+**Which version is running?** `/health` shows the commit it was built from:
+
+```bash
+curl https://media.kristianpayne.dev/health
+```
+
+**See what the timer did:**
+
+```bash
+journalctl -u feed-update.service --since today
+```
+
+**Update right now** instead of waiting:
+
+```bash
+sudo systemctl start feed-update.service
+```
+
+**Pause updates** (for example while testing something by hand):
+
+```bash
+sudo systemctl stop feed-update.timer
+```
+
+`sudo systemctl start feed-update.timer` turns them back on.
+
+**Roll back** to an older version: in `docker-compose.yml`, replace `:latest` with that
+commit's hash (from the Actions tab), stop the timer, and run `docker compose up -d`.
+
+**Changes to `docker-compose.yml` or `deploy/`** are not picked up automatically, because
+the timer only updates the image. After changing those, run `git pull` in `~/portfolio`
+on the EliteDesk (and `docker compose up -d`, or re-copy the deploy files).
+
+**Build locally instead**, for testing changes in Docker:
+`docker compose -f docker-compose.yml -f compose.build.yml up -d --build`. The timer
+swaps it back to the published image on its next run, so stop the timer first.
 
 ## Settings
 

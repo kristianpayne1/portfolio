@@ -1,0 +1,20 @@
+# Updates the feed service to the newest published image.
+# Run every 5 minutes by feed-update.timer. Install steps are in the README.
+
+[Unit]
+Description=Update the feed service to the latest published image
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+# Runs as you (you are in the "docker" group), not as root.
+User=kristian
+WorkingDirectory=/home/kristian/portfolio/feed-service
+
+# 1. Download newer images, if there are any.
+ExecStart=/usr/bin/docker compose pull --quiet
+# 2. Restart only the containers whose image changed. Nothing else is touched.
+ExecStart=/usr/bin/docker compose up -d
+# 3. Delete old image versions nothing uses any more (the disk is small).
+ExecStart=/usr/bin/docker image prune --force

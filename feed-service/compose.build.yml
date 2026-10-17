@@ -1,0 +1,8 @@
+# Builds the feed image from this folder instead of using the published one.
+# For testing local changes in Docker:
+#   docker compose -f docker-compose.yml -f compose.build.yml up -d --build
+# The EliteDesk's update timer will replace it with the published image on its
+# next run (within 5 minutes), so stop the timer first if you need it to stay.
+services:
+    feed:
+        build: .

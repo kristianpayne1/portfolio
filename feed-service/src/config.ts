@@ -30,6 +30,9 @@ export const config = {
     publicHost: process.env.PUBLIC_HOST ?? "0.0.0.0",
     publicPort: Number(process.env.PUBLIC_PORT ?? 8080),
 
+    // The commit the running image was built from ("dev" for local builds).
+    version: process.env.GIT_SHA ?? "dev",
+
     // Used to build absolute media URLs in /entries responses.
     publicUrl: (
         process.env.PUBLIC_URL ?? "https://media.kristianpayne.dev"
