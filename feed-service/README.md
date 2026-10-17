@@ -149,6 +149,14 @@ EliteDesk timer, every 5 min: docker compose pull ◀─────────
   EliteDesk only ever downloads. GitHub has no way into the home lab.
 - **The image is public**, like the repo. It contains only the code; `.env`, `data/` and
   all media stay on the EliteDesk.
+- **The workflow's actions are pinned** to exact commits, so a hijacked release tag of one
+  of them cannot change what runs. Dependabot opens a pull request when one has a new
+  release (`.github/dependabot.yml`).
+- **The feed container is locked down** in `docker-compose.yml`, in case an image were
+  ever bad: its files are read-only (only `data/` and a small `/tmp` are writable), it has
+  no Linux privileges and cannot gain any, and it may use at most 3 CPU cores, 3 GB of
+  memory and 512 processes, so the rest of the EliteDesk stays responsive. The Cloudflare
+  tunnel token is not in this container at all.
 
 **Install the timer** (once, on the EliteDesk):
 
