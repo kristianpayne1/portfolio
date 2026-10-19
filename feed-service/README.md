@@ -122,7 +122,29 @@ added in the compose page but never published (after 24 hours), raw uploads left
 a crash (after 24 hours) and failed uploads (after 7 days). Change these with the settings
 below.
 
-**Back up** by copying the whole `data/` folder. It holds the database and every media file.
+**Back up** by copying the whole data folder (`data/`, or `FEED_DATA_DIR` if set). It holds
+the database and every media file.
+
+**Data on another disk.** Set `FEED_DATA_DIR` in `.env` to keep the data folder somewhere
+else, such as the 250 GB SSD at `/mnt/projects`. The container will not start if that folder
+is missing, so an unmounted disk shows up as an error instead of an empty feed. Make sure the
+disk is in `/etc/fstab` so it mounts on boot. To move existing data (from `~/portfolio/feed-service`):
+
+```bash
+sudo systemctl stop feed-update.timer && docker compose down
+```
+
+```bash
+sudo rsync -a data/ /mnt/projects/feed-data/ && sudo chown -R 1000:1000 /mnt/projects/feed-data
+```
+
+Add `FEED_DATA_DIR=/mnt/projects/feed-data` to `.env`, then:
+
+```bash
+docker compose up -d && sudo systemctl start feed-update.timer
+```
+
+Check the feed and compose page still show your posts, then delete the old `data/` folder.
 
 **Deleting a post:** use the Delete button on the compose page. It removes the entry and
 all of its files, including media embedded in the text. Cloudflare may still have a cached copy of the media file, so for anything
@@ -212,6 +234,7 @@ Set in `docker-compose.yml` (secrets in `.env`):
 | Variable        | Default                           | Meaning                                    |
 | --------------- | --------------------------------- | ------------------------------------------ |
 | `UPLOAD_TOKEN`  | required                          | Bearer token for `/upload`                 |
+| `FEED_DATA_DIR` | `./data`                          | Host folder for the database and media (`.env`) |
 | `TUNNEL_TOKEN`  | required (cloudflared)            | Cloudflare Tunnel token                    |
 | `PUBLIC_URL`    | `https://media.kristianpayne.dev` | Used to build `media_url` in `/entries`    |
 | `MAX_UPLOAD_MB` | `1024`                            | Largest accepted file                      |

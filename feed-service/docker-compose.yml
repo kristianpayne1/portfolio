@@ -27,8 +27,16 @@ services:
             MAX_UPLOAD_MB: 1024
             VIDEO_ENCODER: software
         volumes:
-            # Database, media and raw uploads all live in ./data on the host.
-            - ./data:/data
+            # Database, media and raw uploads all live in one host folder:
+            # FEED_DATA_DIR from .env, or ./data next to this file.
+            # create_host_path: false makes the container refuse to start if
+            # the folder is missing (for example the SSD is not mounted),
+            # instead of quietly starting an empty feed in a new folder.
+            - type: bind
+              source: ${FEED_DATA_DIR:-./data}
+              target: /data
+              bind:
+                  create_host_path: false
         ports:
             # Localhost only. Tailscale Serve forwards tailnet traffic here.
             - "127.0.0.1:8081:8081"
