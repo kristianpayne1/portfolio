@@ -13,9 +13,11 @@ function EmbeddedMedia({ src, caption }: { src: string; caption: string }) {
 
     let media;
     if (extension === "mp4" || extension === "mov" || extension === "webm") {
+        // "#t=0.001" makes iOS Safari show the first frame before playing.
+        // Without it the video is blank until tapped.
         media = (
             <video
-                src={src}
+                src={`${src}#t=0.001`}
                 muted
                 loop
                 playsInline

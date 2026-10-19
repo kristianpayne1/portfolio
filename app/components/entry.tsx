@@ -35,9 +35,11 @@ function EntryMedia({ entry }: { entry: Entry }) {
     if (!entry.media_url) return null;
 
     if (entry.type === "video") {
+        // "#t=0.001" makes iOS Safari show the first frame before playing.
+        // Without it the video is blank until tapped.
         return (
             <video
-                src={entry.media_url}
+                src={`${entry.media_url}#t=0.001`}
                 muted
                 loop
                 playsInline
